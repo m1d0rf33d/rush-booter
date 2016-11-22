@@ -2,6 +2,7 @@ package com.yondu;
 
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
@@ -14,7 +15,11 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -56,7 +61,7 @@ public class UpdateController implements Initializable {
                 String[] arr = l.split("=");
                 merchant = arr[1];
             }
-
+            final String merch = merchant;
             HttpResponse response = null;
             CloseableHttpClient httpClient = HttpClientBuilder.create().build();
             HttpGet request = new HttpGet("http://52.74.203.202:8080/rush-pos-sync/updates/" + merchant + "/" + modificationDate);
@@ -92,6 +97,19 @@ public class UpdateController implements Initializable {
                     MyService myService = new MyService(merchant,totalBytes);
                     updateProgressBar.progressProperty().bind(myService.progressProperty());
                     myService.start();
+                    myService.setOnFailed((WorkerStateEvent f) -> {
+                        Alert a = new Alert(Alert.AlertType.INFORMATION, "Unable to retrieve update due to network connection timeout.", ButtonType.OK);
+                        a.showAndWait();
+
+                        if (a.getResult() == ButtonType.OK) {
+                            try {
+                                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+                            } catch (IOException ee) {
+                                ee.printStackTrace();
+                            }
+                            System.exit(0);
+                        }
+                    });
                 }
             } else {
                 Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
@@ -102,6 +120,12 @@ public class UpdateController implements Initializable {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+            try {
+                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+            System.exit(0);
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -125,7 +149,11 @@ public class UpdateController implements Initializable {
                 protected Void call() throws Exception {
                     try {
                         HttpResponse response = null;
-                        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+                        // set the connection timeout value to 30 seconds (30000 milliseconds)
+                        final HttpParams httpParams = new BasicHttpParams();
+                        HttpConnectionParams.setConnectionTimeout(httpParams, 5000);
+                        HttpConnectionParams.setSoTimeout(httpParams, 5000);
+                        CloseableHttpClient httpClient = new DefaultHttpClient(httpParams);
                         HttpGet request = new HttpGet("http://52.74.203.202:8080/rush-pos-sync/updates/download/" + merchantKey);
                         request.addHeader("content-type", "application/octet-stream");
                         request.addHeader("X-App", "POS-Sync");
@@ -184,10 +212,9 @@ public class UpdateController implements Initializable {
                             }
                         }
 
-                    } catch (ClientProtocolException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        throw new IOException();
                     }
                     return null;
                 }
