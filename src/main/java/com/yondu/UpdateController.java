@@ -5,18 +5,20 @@ import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
@@ -26,9 +28,7 @@ import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.net.URL;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -43,9 +43,23 @@ public class UpdateController implements Initializable {
     public ImageView rushLogoImage;
     @FXML
     public Label downloadLabel;
+    @FXML
+    private Button givePointsButton;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+
+        this.givePointsButton.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent event) -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Are you sure you want to cancel software update?", ButtonType.YES, ButtonType.NO);
+            alert.showAndWait();
+
+            if (alert.getResult() == ButtonType.NO) {
+                alert.close();
+            } else {
+                alert.close();
+                exitApp();
+            }
+        });
 
         this.rushLogoImage.setImage(new Image(App.class.getResource("/app/images/rush_logo.png").toExternalForm()));
         this.downloadLabel.setText("Downloading update from Rush server..");
@@ -61,11 +75,17 @@ public class UpdateController implements Initializable {
                 String[] arr = l.split("=");
                 merchant = arr[1];
             }
+            //Get oauth token
+
+
+
+
             final String merch = merchant;
             HttpResponse response = null;
             CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-            HttpGet request = new HttpGet("http://52.74.203.202:8080/rush-pos-sync/updates/" + merchant + "/" + modificationDate);
+            HttpGet request = new HttpGet("http://52.74.203.202:8080/rush-pos-sync/api/updates/" + merchant + "/" + modificationDate);
             request.addHeader("content-type", "application/octet-stream");
+            request.addHeader("Authorization", "Bearer "  + getToken());
             response = httpClient.execute(request);
             // use httpClient (no need to close it explicitly)
             BufferedReader rd = new BufferedReader(
@@ -77,6 +97,7 @@ public class UpdateController implements Initializable {
                 result.append(line);
             }
             br.close();
+            httpClient.close();
             Date date = new Date();
             Long m = date.getTime();
             JSONParser parser = new JSONParser();
@@ -133,6 +154,15 @@ public class UpdateController implements Initializable {
 
     }
 
+    private void exitApp() {
+        try {
+            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.exit(0);
+    }
+
     private class MyService extends Service<Void> {
         private String merchantKey;
         private Long totalBytes;
@@ -154,9 +184,9 @@ public class UpdateController implements Initializable {
                         HttpConnectionParams.setConnectionTimeout(httpParams, 5000);
                         HttpConnectionParams.setSoTimeout(httpParams, 5000);
                         CloseableHttpClient httpClient = new DefaultHttpClient(httpParams);
-                        HttpGet request = new HttpGet("http://52.74.203.202:8080/rush-pos-sync/updates/download/" + merchantKey);
+                        HttpGet request = new HttpGet("http://52.74.203.202:8080/rush-pos-sync/api/updates/download/" + merchantKey);
                         request.addHeader("content-type", "application/octet-stream");
-                        request.addHeader("X-App", "POS-Sync");
+                        request.addHeader("Authorization", "Bearer "  + getToken());
                         response = httpClient.execute(request);
 
                         InputStream inputStream = response.getEntity().getContent();
@@ -220,5 +250,24 @@ public class UpdateController implements Initializable {
                 }
             };
         }
+    }
+
+    public String getToken() throws IOException, ParseException {
+        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+        HttpPost httpPost = new HttpPost("http://52.74.203.202:8080/rush-pos-sync/oauth/token?grant_type=password&username=admin&password=admin&client_id=clientIdPassword");
+        httpPost.addHeader("Content-Type", "application/json");
+        httpPost.addHeader("Authorization", "Basic Y2xpZW50SWRQYXNzd29yZDpzZWNyZXQ=");
+        HttpResponse response = httpClient.execute(httpPost);
+        BufferedReader rd = new BufferedReader(
+                new InputStreamReader(response.getEntity().getContent()));
+
+        StringBuffer result = new StringBuffer();
+        String line = "";
+        while ((line = rd.readLine()) != null) {
+            result.append(line);
+        }
+        JSONParser parser = new JSONParser();
+        JSONObject jsonObject = (JSONObject) parser.parse(result.toString());
+        return (String) jsonObject.get("access_token");
     }
 }
