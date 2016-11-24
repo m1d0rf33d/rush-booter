@@ -25,8 +25,29 @@ public class App extends Application{
 
     public static void main(String[] args) {
         try {
+
+
+
             boolean is64bit = false;
             if (System.getProperty("os.name").contains("Windows")) {
+                is64bit = (System.getenv("ProgramFiles(x86)") != null);
+                //check if locked
+                File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
+                if (lockFile.exists()) {
+                    try {
+                        if (is64bit) {
+                            Runtime.getRuntime().exec("cmd /c start  C:\\\"Program Files (x86)\"\\Rush-POS-Sync\\max.vbs");
+                        } else {
+                            Runtime.getRuntime().exec("cmd /c start C:\\\"Program Files\"\\Rush-POS-Sync\\max.vbs");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    System.exit(0);
+                } else {
+                    lockFile.createNewFile();
+                }
+
                 //Create initial project setup
                 File dir = new File(System.getProperty("user.home") + "\\Rush-POS-Sync");
                 if (!dir.exists()) {
@@ -36,7 +57,7 @@ public class App extends Application{
                 }
                 File file = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
                 if (!file.exists()) {
-                    is64bit = (System.getenv("ProgramFiles(x86)") != null);
+
                     InputStream inStream = null;
                     OutputStream outStream = null;
                     File baseFile = null;
@@ -82,6 +103,17 @@ public class App extends Application{
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        //lock file
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                File file = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
+                if (file.exists()) {
+                    file.delete();
+                }
+            }
+        });
+
         //Let's get the party started
         Parent root = FXMLLoader.load(App.class.getResource("/app/fxml/update.fxml"));
         primaryStage.setScene(new Scene(root, 400,200));
@@ -89,5 +121,14 @@ public class App extends Application{
         primaryStage.setTitle("Rush POS Sync");
         primaryStage.getIcons().add(new javafx.scene.image.Image(App.class.getResource("/app/images/r_logo.png").toExternalForm()));
         primaryStage.show();
+    }
+
+    @Override
+    public void stop() throws Exception {
+        super.stop();
+        File file = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
+        if (file.exists()) {
+            file.delete();
+        }
     }
 }
