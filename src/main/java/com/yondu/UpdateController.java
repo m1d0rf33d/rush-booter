@@ -9,16 +9,13 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.StageStyle;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
@@ -28,7 +25,9 @@ import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.net.URL;
-import java.util.*;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.ResourceBundle;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -44,13 +43,16 @@ public class UpdateController implements Initializable {
     @FXML
     public Label downloadLabel;
     @FXML
-    private Button givePointsButton;
+    public Button givePointsButton;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
+         //Set on initialize things..
+        this.rushLogoImage.setImage(new Image(App.class.getResource("/app/images/rush_logo.png").toExternalForm()));
         this.givePointsButton.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent event) -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "Are you sure you want to cancel software update?", ButtonType.YES, ButtonType.NO);
+            alert.setTitle(AppConstants.APP_TITLE);
+            alert.initStyle(StageStyle.UTILITY);
             alert.showAndWait();
 
             if (alert.getResult() == ButtonType.NO) {
@@ -60,14 +62,13 @@ public class UpdateController implements Initializable {
                 exitApp();
             }
         });
+        this.downloadLabel.setText("Downloading update from Rush server...");
 
-        this.rushLogoImage.setImage(new Image(App.class.getResource("/app/images/rush_logo.png").toExternalForm()));
-        this.downloadLabel.setText("Downloading update from Rush server..");
-        File file = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
+        //Check if there are software updates basically just compare our jar file to the servers jar file modification date
+        File file = new File(System.getProperty("user.home") + AppConstants.RUSH_JAR_PATH);
         long modificationDate = file.lastModified();
-
         try {
-            File activation = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\activation.txt");
+            File activation = new File(System.getProperty("user.home") + AppConstants.ACTIVATION_PATH);
             BufferedReader br = new BufferedReader(new FileReader(activation));
             String l = "";
             String merchant = null;
@@ -75,13 +76,8 @@ public class UpdateController implements Initializable {
                 String[] arr = l.split("=");
                 merchant = arr[1];
             }
-            //Get oauth token
 
-
-
-
-            final String merch = merchant;
-            HttpResponse response = null;
+            HttpResponse response;
             CloseableHttpClient httpClient = HttpClientBuilder.create().build();
             HttpGet request = new HttpGet("http://52.74.203.202:8080/rush-pos-sync/api/updates/" + merchant + "/" + modificationDate);
             request.addHeader("content-type", "application/octet-stream");
@@ -98,19 +94,20 @@ public class UpdateController implements Initializable {
             }
             br.close();
             httpClient.close();
-            Date date = new Date();
-            Long m = date.getTime();
             JSONParser parser = new JSONParser();
             JSONObject jsonObject = (JSONObject) parser.parse(result.toString());
             if (jsonObject.get("data") != null) {
+                //If there is an update the response data field will contain the length of the jar file ready for download.
                 Long totalBytes = (Long) jsonObject.get("data");
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "There is a software update available with a total of " + (totalBytes / 1000000) + "mb. Would you like to download it now?", ButtonType.YES, ButtonType.NO);
+                alert.setTitle(AppConstants.APP_TITLE);
+                alert.initStyle(StageStyle.UTILITY);
                 alert.showAndWait();
 
                 if (alert.getResult() == ButtonType.NO) {
                     alert.close();
-                    //launch app
-                    Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+                    //launch app user is fagg don't want to download :/
+                    Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.RUSH_JAR_PATH});
                     System.exit(0);
                 }
                 if (alert.getResult() == ButtonType.YES) {
@@ -120,11 +117,13 @@ public class UpdateController implements Initializable {
                     myService.start();
                     myService.setOnFailed((WorkerStateEvent f) -> {
                         Alert a = new Alert(Alert.AlertType.INFORMATION, "Unable to retrieve update due to network connection timeout.", ButtonType.OK);
+                        alert.setTitle(AppConstants.APP_TITLE);
+                        alert.initStyle(StageStyle.UTILITY);
                         a.showAndWait();
 
                         if (a.getResult() == ButtonType.OK) {
                             try {
-                                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+                                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.RUSH_JAR_PATH});
                             } catch (IOException ee) {
                                 ee.printStackTrace();
                             }
@@ -133,7 +132,7 @@ public class UpdateController implements Initializable {
                     });
                 }
             } else {
-                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.RUSH_JAR_PATH});
                 System.exit(0);
             }
 
@@ -142,7 +141,7 @@ public class UpdateController implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
             try {
-                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.RUSH_JAR_PATH});
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
@@ -150,13 +149,11 @@ public class UpdateController implements Initializable {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-
-
     }
 
     private void exitApp() {
         try {
-            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.RUSH_JAR_PATH});
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -178,8 +175,8 @@ public class UpdateController implements Initializable {
                 @Override
                 protected Void call() throws Exception {
                     try {
-                        HttpResponse response = null;
-                        // set the connection timeout value to 30 seconds (30000 milliseconds)
+                        // Deprecated objects ?!!! sorry.. I don't have time and motivation to search for updated implementations.. :/
+                        HttpResponse response;
                         final HttpParams httpParams = new BasicHttpParams();
                         HttpConnectionParams.setConnectionTimeout(httpParams, 5000);
                         HttpConnectionParams.setSoTimeout(httpParams, 5000);
@@ -190,7 +187,7 @@ public class UpdateController implements Initializable {
                         response = httpClient.execute(request);
 
                         InputStream inputStream = response.getEntity().getContent();
-                        String location = System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar";
+                        String location = System.getProperty("user.home") + AppConstants.RUSH_UPDATE_PATH;
                         FileOutputStream out = new FileOutputStream(location);
                         int len = 0;
                         byte[] buffer = new byte[5024];
@@ -206,17 +203,17 @@ public class UpdateController implements Initializable {
                         inputStream.close();
 
                         try {
-                            ZipFile file = new ZipFile(new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar"));
+                            ZipFile file = new ZipFile(new File(System.getProperty("user.home") + AppConstants.RUSH_UPDATE_PATH));
                             Enumeration<? extends ZipEntry> e = file.entries();
                             while(e.hasMoreElements()) {
                                 ZipEntry entry = e.nextElement();
                             }
 
-                            File oldJar = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
+                            File oldJar = new File(System.getProperty("user.home") + AppConstants.RUSH_JAR_PATH);
                             oldJar.delete();
 
-                            File newFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar");
-                            File targetFile = new File (System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
+                            File newFile = new File(System.getProperty("user.home") + AppConstants.RUSH_UPDATE_PATH);
+                            File targetFile = new File (System.getProperty("user.home") + AppConstants.RUSH_JAR_PATH);
                             InputStream inStream = new FileInputStream(newFile);
                             OutputStream outStream = new FileOutputStream(targetFile);
                             buffer = new byte[5024];
@@ -228,7 +225,7 @@ public class UpdateController implements Initializable {
                             inStream.close();
                             outStream.close();
 
-                            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+                            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.RUSH_JAR_PATH});
                             System.exit(0);
 
 
@@ -241,7 +238,6 @@ public class UpdateController implements Initializable {
                                 alert.close();
                             }
                         }
-
                     } catch (Exception e) {
                         e.printStackTrace();
                         throw new IOException();
