@@ -90,6 +90,8 @@ public class App extends Application{
                     }
                     launch(args);
                 } else {
+                    //remove lock
+                    lockFile.delete();
                     Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
                     System.exit(0);
                 }
