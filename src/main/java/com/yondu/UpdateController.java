@@ -11,25 +11,18 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.StageStyle;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.net.URL;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.ResourceBundle;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -47,12 +40,14 @@ public class UpdateController implements Initializable {
     @FXML
     private Button givePointsButton;
 
+    private ApiService apiService = new ApiService();
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
+        //Bind button events
         this.givePointsButton.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent event) -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "Are you sure you want to cancel software update?", ButtonType.YES, ButtonType.NO);
-            alert.setTitle("Rush POS Sync");
+            alert.setTitle(AppConstants.APP_TITLE);
             alert.initStyle(StageStyle.UTILITY);
             alert.showAndWait();
 
@@ -64,51 +59,23 @@ public class UpdateController implements Initializable {
             }
         });
 
-        this.rushLogoImage.setImage(new Image(App.class.getResource("/app/images/rush_logo.png").toExternalForm()));
+        this.rushLogoImage.setImage(new Image(App.class.getResource(AppConstants.RUSH_LOGO).toExternalForm()));
         this.downloadLabel.setText("Downloading update from Rush server..");
+
         File file = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
         long modificationDate = file.lastModified();
 
         try {
-            File activation = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\activation.txt");
-            BufferedReader br = new BufferedReader(new FileReader(activation));
-            String l = "";
-            String merchant = null;
-            while ((l = br.readLine()) != null) {
-                String[] arr = l.split("=");
-                merchant = arr[1];
-            }
-            //Get oauth token
+            //Read activated merchant
+            String merchant = this.getActivatedMerchant();
 
+            //Check for software updates
+            JSONObject jsonObject = apiService.checkSoftwareUpdates(merchant, modificationDate);
 
-
-
-            final String merch = merchant;
-            HttpResponse response = null;
-            CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-            HttpGet request = new HttpGet("http://52.74.203.202:8080/rush-pos-sync/api/updates/" + merchant + "/" + modificationDate);
-            request.addHeader("content-type", "application/octet-stream");
-            request.addHeader("Authorization", "Bearer "  + getToken());
-            response = httpClient.execute(request);
-            // use httpClient (no need to close it explicitly)
-            BufferedReader rd = new BufferedReader(
-                    new InputStreamReader(response.getEntity().getContent()));
-
-            StringBuffer result = new StringBuffer();
-            String line = "";
-            while ((line = rd.readLine()) != null) {
-                result.append(line);
-            }
-            br.close();
-            httpClient.close();
-            Date date = new Date();
-            Long m = date.getTime();
-            JSONParser parser = new JSONParser();
-            JSONObject jsonObject = (JSONObject) parser.parse(result.toString());
             if (jsonObject.get("data") != null) {
                 Long totalBytes = (Long) jsonObject.get("data");
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "There is a software update available with a total of " + (totalBytes / 1000000) + "mb. Would you like to download it now?", ButtonType.YES, ButtonType.NO);
-                alert.setTitle("Rush POS Sync");
+                alert.setTitle(AppConstants.APP_TITLE);
                 alert.initStyle(StageStyle.UTILITY);
                 alert.showAndWait();
 
@@ -127,46 +94,25 @@ public class UpdateController implements Initializable {
                     myService.start();
                     myService.setOnFailed((WorkerStateEvent f) -> {
                         Alert a = new Alert(Alert.AlertType.INFORMATION, "Unable to retrieve update due to network connection timeout.", ButtonType.OK);
-                        a.setTitle("Rush POS Sync");
+                        a.setTitle(AppConstants.APP_TITLE);
                         a.initStyle(StageStyle.UTILITY);
                         a.showAndWait();
 
                         if (a.getResult() == ButtonType.OK) {
-                            try {
-                                File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
-                                lockFile.delete();
-                                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
-                            } catch (IOException ee) {
-                                ee.printStackTrace();
-                            }
-                            System.exit(0);
+                            this.exitApp();
                         }
                     });
                 }
             } else {
-                File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
-                lockFile.delete();
-                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
-                System.exit(0);
+               this.exitApp();
             }
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-            try {
-                File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
-                lockFile.delete();
-                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
-            } catch (IOException e1) {
-                e1.printStackTrace();
-            }
-            System.exit(0);
-        } catch (ParseException e) {
-            e.printStackTrace();
+          this.exitApp();
         }
-
-
     }
 
     private void exitApp() {
@@ -195,15 +141,15 @@ public class UpdateController implements Initializable {
                 @Override
                 protected Void call() throws Exception {
                     try {
-                        HttpResponse response = null;
-                        // set the connection timeout value to 30 seconds (30000 milliseconds)
+                        //Why am I using deprecated methods man.. :(
+                        HttpResponse response;
                         final HttpParams httpParams = new BasicHttpParams();
                         HttpConnectionParams.setConnectionTimeout(httpParams, 20000);
                         HttpConnectionParams.setSoTimeout(httpParams, 20000);
                         CloseableHttpClient httpClient = new DefaultHttpClient(httpParams);
                         HttpGet request = new HttpGet("http://52.74.203.202:8080/rush-pos-sync/api/updates/download/" + merchantKey);
                         request.addHeader("content-type", "application/octet-stream");
-                        request.addHeader("Authorization", "Bearer "  + getToken());
+                        request.addHeader("Authorization", "Bearer "  + apiService.getToken());
                         response = httpClient.execute(request);
 
                         InputStream inputStream = response.getEntity().getContent();
@@ -222,45 +168,7 @@ public class UpdateController implements Initializable {
                         out.close();
                         inputStream.close();
 
-                        try {
-                            ZipFile file = new ZipFile(new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar"));
-                            Enumeration<? extends ZipEntry> e = file.entries();
-                            while(e.hasMoreElements()) {
-                                ZipEntry entry = e.nextElement();
-                            }
-
-                            File oldJar = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
-                            oldJar.delete();
-
-                            File newFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar");
-                            File targetFile = new File (System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
-                            InputStream inStream = new FileInputStream(newFile);
-                            OutputStream outStream = new FileOutputStream(targetFile);
-                            buffer = new byte[5024];
-
-                            //copy the file content in bytes
-                            while ((length = inStream.read(buffer)) > 0){
-                                outStream.write(buffer, 0, length);
-                            }
-                            inStream.close();
-                            outStream.close();
-                            File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
-                            lockFile.delete();
-                            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
-                            System.exit(0);
-
-
-                        } catch(Exception ex) {
-                            ex.printStackTrace();
-                            Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is corrupt", ButtonType.OK);
-                            alert.setTitle("Rush POS Sync");
-                            alert.initStyle(StageStyle.UTILITY);
-                            alert.showAndWait();
-
-                            if (alert.getResult() == ButtonType.OK) {
-                                alert.close();
-                            }
-                        }
+                        verifyUpdateFile();
 
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -272,22 +180,65 @@ public class UpdateController implements Initializable {
         }
     }
 
-    public String getToken() throws IOException, ParseException {
-        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        HttpPost httpPost = new HttpPost("http://52.74.203.202:8080/rush-pos-sync/oauth/token?grant_type=password&username=admin&password=admin&client_id=clientIdPassword");
-        httpPost.addHeader("Content-Type", "application/json");
-        httpPost.addHeader("Authorization", "Basic Y2xpZW50SWRQYXNzd29yZDpzZWNyZXQ=");
-        HttpResponse response = httpClient.execute(httpPost);
-        BufferedReader rd = new BufferedReader(
-                new InputStreamReader(response.getEntity().getContent()));
+    private void verifyUpdateFile() {
+        try {
+            ZipFile file = new ZipFile(new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar"));
+            Enumeration<? extends ZipEntry> e = file.entries();
+            while(e.hasMoreElements()) {
+                ZipEntry entry = e.nextElement();
+            }
 
-        StringBuffer result = new StringBuffer();
-        String line = "";
-        while ((line = rd.readLine()) != null) {
-            result.append(line);
+            File oldJar = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
+            oldJar.delete();
+
+            File newFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar");
+            File targetFile = new File (System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
+            InputStream inStream = new FileInputStream(newFile);
+            OutputStream outStream = new FileOutputStream(targetFile);
+            byte[] buffer = new byte[5024];
+            int length;
+            //copy the file content in bytes
+            while ((length = inStream.read(buffer)) > 0){
+                outStream.write(buffer, 0, length);
+            }
+            inStream.close();
+            outStream.close();
+            File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
+            lockFile.delete();
+            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+            System.exit(0);
+
+
+        } catch(Exception ex) {
+            ex.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is corrupt", ButtonType.OK);
+            alert.setTitle(AppConstants.APP_TITLE);
+            alert.initStyle(StageStyle.UTILITY);
+            alert.showAndWait();
+
+            if (alert.getResult() == ButtonType.OK) {
+                alert.close();
+            }
         }
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject = (JSONObject) parser.parse(result.toString());
-        return (String) jsonObject.get("access_token");
     }
+
+    public String getActivatedMerchant() {
+        try {
+            File activation = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\activation.txt");
+            BufferedReader br = new BufferedReader(new FileReader(activation));
+            String l = "";
+            String merchant = null;
+            while ((l = br.readLine()) != null) {
+                String[] arr = l.split("=");
+                merchant = arr[1];
+            }
+            return merchant;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 }

@@ -44,8 +44,6 @@ public class App extends Application{
                         e.printStackTrace();
                     }
                     System.exit(0);
-                } else {
-                    lockFile.createNewFile();
                 }
 
                 //Create initial project setup
@@ -55,6 +53,9 @@ public class App extends Application{
                     Path path = FileSystems.getDefault().getPath(dir.getAbsolutePath());
                     Files.setAttribute(path, "dos:hidden", true);
                 }
+
+                lockFile.createNewFile();
+
                 File file = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
                 if (!file.exists()) {
 
