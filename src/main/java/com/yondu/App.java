@@ -25,14 +25,11 @@ public class App extends Application{
 
     public static void main(String[] args) {
         try {
-
-
-
             boolean is64bit = false;
             if (System.getProperty("os.name").contains("Windows")) {
                 is64bit = (System.getenv("ProgramFiles(x86)") != null);
                 //check if locked
-                File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
+                File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
                 if (lockFile.exists()) {
                     try {
                         if (is64bit) {
@@ -47,60 +44,100 @@ public class App extends Application{
                 }
 
                 //Create initial project setup
-                File dir = new File(System.getProperty("user.home") + "\\Rush-POS-Sync");
+                File dir = new File(System.getProperty("user.home") + AppConstants.BASE_FOLDER);
                 if (!dir.exists()) {
                     dir.mkdir();
                     Path path = FileSystems.getDefault().getPath(dir.getAbsolutePath());
                     Files.setAttribute(path, "dos:hidden", true);
                 }
 
+                //lock it
                 lockFile.createNewFile();
+                //transfer base jar to User directory
+                createBaseJarToUserDir(is64bit);
 
-                File file = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
-                if (!file.exists()) {
-
-                    InputStream inStream = null;
-                    OutputStream outStream = null;
-                    File baseFile = null;
-                    if (is64bit) {
-                        baseFile = new File("C:\\Program Files (x86)\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
-
-                    } else {
-                        baseFile = new File("C:\\Program Files\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
-                    }
-                    File targetFile = new File (System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
-                    inStream = new FileInputStream(baseFile);
-                    outStream = new FileOutputStream(targetFile);
-                    byte[] buffer = new byte[5242880];
-
-                    int length;
-                    while ((length = inStream.read(buffer)) > 0){
-                        outStream.write(buffer, 0, length);
-                    }
-
-                    inStream.close();
-                    outStream.close();
-                }
                 //If activated
-                File activateFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\activation.txt");
+                File activateFile = new File(System.getProperty("user.home") + AppConstants.ACTIVATION_PATH);
                 if (activateFile.exists()) {
-                    //remove previous update copies
-                    File f1 = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar");
-                    if (f1.exists()) {
-                        f1.delete();
-                    }
                     launch(args);
                 } else {
                     //remove lock
                     lockFile.delete();
-                    Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+                    Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
                     System.exit(0);
                 }
             }
-
-
         } catch (IOException ioe) {
             ioe.printStackTrace();
+        }
+    }
+
+    private static void createBaseJarToUserDir(boolean is64bit) {
+        try {
+            File file = new File(System.getProperty("user.home") + AppConstants.JAR_PATH);
+            if (!file.exists()) {
+                InputStream inStream;
+                OutputStream outStream;
+                File baseFile;
+                if (is64bit) {
+                    baseFile = new File("C:\\Program Files (x86)" + AppConstants.JAR_PATH);
+
+                } else {
+                    baseFile = new File("C:\\Program Files" + AppConstants.JAR_PATH);
+                }
+                File targetFile = new File (System.getProperty("user.home") + AppConstants.JAR_PATH);
+                inStream = new FileInputStream(baseFile);
+                outStream = new FileOutputStream(targetFile);
+                byte[] buffer = new byte[5242880];
+
+                int length;
+                while ((length = inStream.read(buffer)) > 0){
+                    outStream.write(buffer, 0, length);
+                }
+
+                inStream.close();
+                outStream.close();
+
+                createVersionFile(is64bit);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void createVersionFile(boolean is64bit) {
+        try {
+            File file = new File(System.getProperty("user.home") + AppConstants.VERSION_PATH);
+            if (!file.exists()) {
+                InputStream inStream;
+                OutputStream outStream;
+                File baseFile;
+                if (is64bit) {
+                    baseFile = new File("C:\\Program Files (x86)" + AppConstants.VERSION_PATH);
+
+                } else {
+                    baseFile = new File("C:\\Program Files" + AppConstants.VERSION_PATH);
+                }
+                File targetFile = new File (System.getProperty("user.home") + AppConstants.VERSION_PATH);
+                inStream = new FileInputStream(baseFile);
+                outStream = new FileOutputStream(targetFile);
+                byte[] buffer = new byte[5242880];
+
+                int length;
+                while ((length = inStream.read(buffer)) > 0){
+                    outStream.write(buffer, 0, length);
+                }
+
+                inStream.close();
+                outStream.close();
+
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -110,7 +147,7 @@ public class App extends Application{
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
-                File file = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
+                File file = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
                 if (file.exists()) {
                     file.delete();
                 }
@@ -118,18 +155,18 @@ public class App extends Application{
         });
 
         //Let's get the party started
-        Parent root = FXMLLoader.load(App.class.getResource("/app/fxml/update.fxml"));
+        Parent root = FXMLLoader.load(App.class.getResource(AppConstants.UPDATE_FXML));
         primaryStage.setScene(new Scene(root, 400,200));
         primaryStage.resizableProperty().setValue(false);
         primaryStage.setTitle("Rush POS Sync");
-        primaryStage.getIcons().add(new javafx.scene.image.Image(App.class.getResource("/app/images/r_logo.png").toExternalForm()));
+        primaryStage.getIcons().add(new javafx.scene.image.Image(App.class.getResource(AppConstants.R_LOGO).toExternalForm()));
         primaryStage.show();
     }
 
     @Override
     public void stop() throws Exception {
         super.stop();
-        File file = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
+        File file = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
         if (file.exists()) {
             file.delete();
         }

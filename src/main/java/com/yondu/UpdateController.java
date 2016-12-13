@@ -22,9 +22,11 @@ import org.json.simple.JSONObject;
 import java.io.*;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 /**
  * Created by erwin on 11/17/2016.
@@ -40,10 +42,33 @@ public class UpdateController implements Initializable {
     @FXML
     private Button givePointsButton;
 
+    private Properties prop = new Properties();
     private ApiService apiService = new ApiService();
+
+    public UpdateController() {
+        try {
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("api.properties");
+            if (inputStream != null) {
+                prop.load(inputStream);
+                inputStream.close();
+            } else {
+                throw new FileNotFoundException("property file api.properties not found in the classpath");
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+
+        String version = this.getVersion();
+        String merchant = this.getActivatedMerchant();
+        //Check for update
+        this.checkForUpdate(merchant, version);
+
         //Bind button events
         this.givePointsButton.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent event) -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "Are you sure you want to cancel software update?", ButtonType.YES, ButtonType.NO);
@@ -61,16 +86,11 @@ public class UpdateController implements Initializable {
 
         this.rushLogoImage.setImage(new Image(App.class.getResource(AppConstants.RUSH_LOGO).toExternalForm()));
         this.downloadLabel.setText("Downloading update from Rush server..");
+    }
 
-        File file = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
-        long modificationDate = file.lastModified();
-
+    private void checkForUpdate(String merchant, String version) {
         try {
-            //Read activated merchant
-            String merchant = this.getActivatedMerchant();
-
-            //Check for software updates
-            JSONObject jsonObject = apiService.checkSoftwareUpdates(merchant, modificationDate);
+            JSONObject jsonObject = apiService.checkSoftwareUpdates(merchant, version);
 
             if (jsonObject.get("data") != null) {
                 Long totalBytes = (Long) jsonObject.get("data");
@@ -81,10 +101,10 @@ public class UpdateController implements Initializable {
 
                 if (alert.getResult() == ButtonType.NO) {
                     alert.close();
-                    File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
+                    File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
                     lockFile.delete();
                     //launch app
-                    Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+                    Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
                     System.exit(0);
                 }
                 if (alert.getResult() == ButtonType.YES) {
@@ -104,22 +124,44 @@ public class UpdateController implements Initializable {
                     });
                 }
             } else {
-               this.exitApp();
+                this.exitApp();
             }
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-          this.exitApp();
+            this.exitApp();
         }
     }
 
+    private String getVersion() {
+        String version = null;
+        try {
+            File versionFile = new File(System.getProperty("user.home") + AppConstants.VERSION_PATH);
+            //Get merchant key from activation file
+            BufferedReader br = new BufferedReader(new FileReader(versionFile));
+            String l = "";
+            version = null;
+            while ((l = br.readLine()) != null) {
+                String[] arr = l.split("=");
+                version = arr[1];
+            }
+            br.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return version;
+    }
+
+
     private void exitApp() {
         try {
-            File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
+            File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
             lockFile.delete();
-            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -147,13 +189,16 @@ public class UpdateController implements Initializable {
                         HttpConnectionParams.setConnectionTimeout(httpParams, 20000);
                         HttpConnectionParams.setSoTimeout(httpParams, 20000);
                         CloseableHttpClient httpClient = new DefaultHttpClient(httpParams);
-                        HttpGet request = new HttpGet("http://52.74.203.202:8080/rush-pos-sync/api/updates/download/" + merchantKey);
+
+                        String url = prop.getProperty("cms_url") + prop.getProperty("tomcat_port") + prop.getProperty("download_updates_api");
+                        url = url.replace(":merchant", merchantKey);
+                        HttpGet request = new HttpGet(url);
                         request.addHeader("content-type", "application/octet-stream");
                         request.addHeader("Authorization", "Bearer "  + apiService.getToken());
                         response = httpClient.execute(request);
 
                         InputStream inputStream = response.getEntity().getContent();
-                        String location = System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar";
+                        String location = System.getProperty("user.home") + AppConstants.UPDATE_ZIP;
                         FileOutputStream out = new FileOutputStream(location);
                         int len = 0;
                         byte[] buffer = new byte[2097152];
@@ -181,21 +226,47 @@ public class UpdateController implements Initializable {
     }
 
     private void verifyUpdateFile() {
+        byte[] buffer = new byte[1024];
+
         try {
-            ZipFile file = new ZipFile(new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar"));
-            Enumeration<? extends ZipEntry> e = file.entries();
-            while(e.hasMoreElements()) {
-                ZipEntry entry = e.nextElement();
+            File zipFile = new File(System.getProperty("user.home") + AppConstants.UPDATE_ZIP);
+            //get the zip file content
+            ZipInputStream zis =
+                    new ZipInputStream(new FileInputStream(zipFile));
+            //get the zipped file list entry
+            ZipEntry ze = zis.getNextEntry();
+
+            while(ze!=null){
+
+                String fileName = ze.getName();
+                File newFile = new File(System.getProperty("user.home") + AppConstants.BASE_FOLDER + File.separator + fileName);
+                System.out.println("file unzip : "+ newFile.getAbsoluteFile());
+
+                //create all non exists folders
+                //else you will hit FileNotFoundException for compressed folder
+                new File(newFile.getParent()).mkdirs();
+
+                FileOutputStream fos = new FileOutputStream(newFile);
+                int len;
+                while ((len = zis.read(buffer)) > 0) {
+                    fos.write(buffer, 0, len);
+                }
+
+                fos.close();
+                ze = zis.getNextEntry();
             }
 
-            File oldJar = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
+            zis.closeEntry();
+            zis.close();
+
+            /*File oldJar = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
             oldJar.delete();
 
             File newFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar");
             File targetFile = new File (System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
             InputStream inStream = new FileInputStream(newFile);
             OutputStream outStream = new FileOutputStream(targetFile);
-            byte[] buffer = new byte[5024];
+            buffer = new byte[5024];
             int length;
             //copy the file content in bytes
             while ((length = inStream.read(buffer)) > 0){
@@ -206,9 +277,7 @@ public class UpdateController implements Initializable {
             File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
             lockFile.delete();
             Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
-            System.exit(0);
-
-
+            System.exit(0);*/
         } catch(Exception ex) {
             ex.printStackTrace();
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is corrupt", ButtonType.OK);

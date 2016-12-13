@@ -36,14 +36,14 @@ public class ApiService {
         }
     }
 
-    public JSONObject checkSoftwareUpdates(String merchant, long modificationDate) {
+    public JSONObject checkSoftwareUpdates(String merchant, String version) {
 
         try {
             HttpResponse response;
             CloseableHttpClient httpClient = HttpClientBuilder.create().build();
             String url = properties.getProperty("base_url") + properties.getProperty("get_updates_api");
             url = url.replace(":merchant", merchant);
-            url = url.replace(":modificationDate", String.valueOf(modificationDate));
+            url = url.replace(":version", version);
             HttpGet request = new HttpGet(url);
             request.addHeader("content-type", "application/octet-stream");
             request.addHeader("Authorization", "Bearer "  + getToken());
