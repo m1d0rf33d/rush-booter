@@ -93,7 +93,8 @@ public class UpdateController implements Initializable {
             JSONObject jsonObject = apiService.checkSoftwareUpdates(merchant, version);
 
             if (jsonObject.get("data") != null) {
-                Long totalBytes = (Long) jsonObject.get("data");
+                JSONObject dataContent = (JSONObject) jsonObject.get("data");
+                Long totalBytes = (Long) dataContent.get("fileSize");
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "There is a software update available with a total of " + (totalBytes / 1000000) + "mb. Would you like to download it now?", ButtonType.YES, ButtonType.NO);
                 alert.setTitle(AppConstants.APP_TITLE);
                 alert.initStyle(StageStyle.UTILITY);
@@ -190,7 +191,7 @@ public class UpdateController implements Initializable {
                         HttpConnectionParams.setSoTimeout(httpParams, 20000);
                         CloseableHttpClient httpClient = new DefaultHttpClient(httpParams);
 
-                        String url = prop.getProperty("cms_url") + prop.getProperty("tomcat_port") + prop.getProperty("download_updates_api");
+                        String url = prop.getProperty("base_url") + prop.getProperty("tomcat_port") + prop.getProperty("download_updates_api");
                         url = url.replace(":merchant", merchantKey);
                         HttpGet request = new HttpGet(url);
                         request.addHeader("content-type", "application/octet-stream");
@@ -229,36 +230,24 @@ public class UpdateController implements Initializable {
         byte[] buffer = new byte[1024];
 
         try {
-            File zipFile = new File(System.getProperty("user.home") + AppConstants.UPDATE_ZIP);
-            //get the zip file content
-            ZipInputStream zis =
-                    new ZipInputStream(new FileInputStream(zipFile));
-            //get the zipped file list entry
-            ZipEntry ze = zis.getNextEntry();
 
-            while(ze!=null){
+            UnzipUtil unzipUtil = new UnzipUtil();
+            unzipUtil.unzip(System.getProperty("user.home") + AppConstants.UPDATE_ZIP, System.getProperty("user.home") + AppConstants.BASE_FOLDER);
+            //com, app, lib
+            Process p = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "com/"});
+            Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "app/"});
+            Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "lib/"});
 
-                String fileName = ze.getName();
-                File newFile = new File(System.getProperty("user.home") + AppConstants.BASE_FOLDER + File.separator + fileName);
-                System.out.println("file unzip : "+ newFile.getAbsoluteFile());
-
-                //create all non exists folders
-                //else you will hit FileNotFoundException for compressed folder
-                new File(newFile.getParent()).mkdirs();
-
-                FileOutputStream fos = new FileOutputStream(newFile);
-                int len;
-                while ((len = zis.read(buffer)) > 0) {
-                    fos.write(buffer, 0, len);
-                }
-
-                fos.close();
-                ze = zis.getNextEntry();
+            while(p.isAlive()) {
+               Thread.sleep(2000);
             }
-
-            zis.closeEntry();
-            zis.close();
-
+            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+            System.exit(0);
+           /* Thread.sleep(20000);
+            File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
+            lockFile.delete();
+            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+            System.exit(0);*/
             /*File oldJar = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
             oldJar.delete();
 

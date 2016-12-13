@@ -18,7 +18,7 @@ import java.util.Properties;
  */
 public class ApiService {
 
-    private Properties properties;
+    private Properties properties = new Properties();
 
     public ApiService() {
         try {
@@ -75,7 +75,7 @@ public class ApiService {
         String url = properties.getProperty("base_url") + properties.getProperty("get_token_api");
         url = url.replace(":username", properties.getProperty("oauth_username"));
         url = url.replace(":password", properties.getProperty("oauth_password"));
-        url = url.replace(":client_id_password", properties.getProperty("oauth_client_id_password"));
+        url = url.replace(":clientIdPassword", properties.getProperty("oauth_client_id_password"));
 
         HttpPost httpPost = new HttpPost(url);
         httpPost.addHeader("Content-Type", "application/json");
