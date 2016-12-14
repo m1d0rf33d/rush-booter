@@ -94,8 +94,15 @@ public class UpdateController implements Initializable {
 
             if (jsonObject.get("data") != null) {
                 JSONObject dataContent = (JSONObject) jsonObject.get("data");
+                String measure = "mb";
                 Long totalBytes = (Long) dataContent.get("fileSize");
-                Alert alert = new Alert(Alert.AlertType.INFORMATION, "There is a software update available with a total of " + (totalBytes / 1000000) + "mb. Would you like to download it now?", ButtonType.YES, ButtonType.NO);
+                totalBytes = totalBytes / 1000000; //mb
+                if (totalBytes == 0) {
+                    totalBytes =(Long) dataContent.get("fileSize") / 1000; //kb
+                    measure = "kb";
+                }
+
+                Alert alert = new Alert(Alert.AlertType.INFORMATION, "There is a software update available with a total of " + totalBytes + measure + ". Would you like to download it now?", ButtonType.YES, ButtonType.NO);
                 alert.setTitle(AppConstants.APP_TITLE);
                 alert.initStyle(StageStyle.UTILITY);
                 alert.showAndWait();
@@ -234,39 +241,21 @@ public class UpdateController implements Initializable {
             UnzipUtil unzipUtil = new UnzipUtil();
             unzipUtil.unzip(System.getProperty("user.home") + AppConstants.UPDATE_ZIP, System.getProperty("user.home") + AppConstants.BASE_FOLDER);
             //com, app, lib
-            Process p = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "com/"});
-            Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "app/"});
-            Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "lib/"});
-
-            while(p.isAlive()) {
+            Process p1 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "com/"});
+            while(p1.isAlive()) {
                Thread.sleep(2000);
+            }
+
+            Process p2 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "app/"});
+            while(p2.isAlive()) {
+                Thread.sleep(2000);
+            }
+            Process p3 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "lib/"});
+            while(p3.isAlive()) {
+                Thread.sleep(2000);
             }
             Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
             System.exit(0);
-           /* Thread.sleep(20000);
-            File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
-            lockFile.delete();
-            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
-            System.exit(0);*/
-            /*File oldJar = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
-            oldJar.delete();
-
-            File newFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-update.jar");
-            File targetFile = new File (System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar");
-            InputStream inStream = new FileInputStream(newFile);
-            OutputStream outStream = new FileOutputStream(targetFile);
-            buffer = new byte[5024];
-            int length;
-            //copy the file content in bytes
-            while ((length = inStream.read(buffer)) > 0){
-                outStream.write(buffer, 0, length);
-            }
-            inStream.close();
-            outStream.close();
-            File lockFile = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\lock.txt");
-            lockFile.delete();
-            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
-            System.exit(0);*/
         } catch(Exception ex) {
             ex.printStackTrace();
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "File is corrupt", ButtonType.OK);

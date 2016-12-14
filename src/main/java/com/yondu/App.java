@@ -55,6 +55,8 @@ public class App extends Application{
                 lockFile.createNewFile();
                 //transfer base jar to User directory
                 createBaseJarToUserDir(is64bit);
+                //transfer version txt
+                createVersionFile(is64bit);
 
                 //If activated
                 File activateFile = new File(System.getProperty("user.home") + AppConstants.ACTIVATION_PATH);
@@ -98,7 +100,6 @@ public class App extends Application{
                 inStream.close();
                 outStream.close();
 
-                createVersionFile(is64bit);
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -106,6 +107,8 @@ public class App extends Application{
             e.printStackTrace();
         }
     }
+
+
 
     private static void createVersionFile(boolean is64bit) {
         try {
@@ -158,7 +161,7 @@ public class App extends Application{
         Parent root = FXMLLoader.load(App.class.getResource(AppConstants.UPDATE_FXML));
         primaryStage.setScene(new Scene(root, 400,200));
         primaryStage.resizableProperty().setValue(false);
-        primaryStage.setTitle("Rush POS Sync");
+        primaryStage.setTitle(AppConstants.APP_TITLE);
         primaryStage.getIcons().add(new javafx.scene.image.Image(App.class.getResource(AppConstants.R_LOGO).toExternalForm()));
         primaryStage.show();
     }

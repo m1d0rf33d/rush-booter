@@ -15,6 +15,7 @@ public class AppConstants {
     public static final String VERSION_PATH = BASE_FOLDER + "\\version.txt";
     public static final String UPDATE_FXML = "/app/fxml/update.fxml";
     public static final String UPDATE_ZIP = BASE_FOLDER + "\\update.zip";
+    public static final String EXTRACTED_ZIP = BASE_FOLDER + "\\update";
 
 
     private AppConstants() {
