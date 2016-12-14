@@ -16,7 +16,10 @@ public class AppConstants {
     public static final String UPDATE_FXML = "/app/fxml/update.fxml";
     public static final String UPDATE_ZIP = BASE_FOLDER + "\\update.zip";
     public static final String EXTRACTED_ZIP = BASE_FOLDER + "\\update";
-
+    public static final String COM_FOLDER = BASE_FOLDER + "\\com";
+    public static final String APP_FOLDER = BASE_FOLDER + "\\app";
+    public static final String LIB_FOLDER = BASE_FOLDER + "\\lib";
+    public static final String NOTIFICATION_FXML = "/app/fxml/notification.fxml";
 
     private AppConstants() {
 

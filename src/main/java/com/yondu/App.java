@@ -1,17 +1,23 @@
 package com.yondu;
 
 import javafx.application.Application;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.json.simple.JSONObject;
 
 import java.io.*;
 import java.nio.file.FileSystems;
@@ -158,12 +164,74 @@ public class App extends Application{
         });
 
         //Let's get the party started
-        Parent root = FXMLLoader.load(App.class.getResource(AppConstants.UPDATE_FXML));
-        primaryStage.setScene(new Scene(root, 400,200));
-        primaryStage.resizableProperty().setValue(false);
-        primaryStage.setTitle(AppConstants.APP_TITLE);
-        primaryStage.getIcons().add(new javafx.scene.image.Image(App.class.getResource(AppConstants.R_LOGO).toExternalForm()));
-        primaryStage.show();
+        String merchant = getActivatedMerchant();
+        //Check for updates
+        JSONObject jsonObj = this.checkForUpdate(merchant, getVersion());
+        JSONObject dataJSON = (JSONObject) jsonObj.get("data");
+        if (dataJSON.get("fileSize") != null) {
+            Stage stage = new Stage();
+            FXMLLoader  loader  = new FXMLLoader(App.class.getResource(AppConstants.NOTIFICATION_FXML));
+            NotificationController notificationController = new NotificationController(merchant, dataJSON);
+            loader.setController(notificationController);
+            stage.setScene(new Scene(loader.load(), 400,110));
+            stage.resizableProperty().setValue(Boolean.FALSE);
+            stage.setTitle(AppConstants.APP_TITLE);
+            stage.getIcons().add(new Image(App.class.getResource(AppConstants.R_LOGO).toExternalForm()));
+            stage.show();
+        } else {
+            File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
+            lockFile.delete();
+            //launch app
+            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+            System.exit(0);
+        }
+
+
+    }
+
+
+    private JSONObject checkForUpdate(String merchant, String version) {
+        ApiService apiService = new ApiService();
+        return apiService.checkSoftwareUpdates(merchant, version);
+    }
+    public String getActivatedMerchant() {
+        try {
+            File activation = new File(System.getProperty("user.home") + "\\Rush-POS-Sync\\activation.txt");
+            BufferedReader br = new BufferedReader(new FileReader(activation));
+            String l = "";
+            String merchant = null;
+            while ((l = br.readLine()) != null) {
+                String[] arr = l.split("=");
+                merchant = arr[1];
+            }
+            return merchant;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private String getVersion() {
+        String version = null;
+        try {
+            File versionFile = new File(System.getProperty("user.home") + AppConstants.VERSION_PATH);
+            //Get merchant key from activation file
+            BufferedReader br = new BufferedReader(new FileReader(versionFile));
+            String l = "";
+            version = null;
+            while ((l = br.readLine()) != null) {
+                String[] arr = l.split("=");
+                version = arr[1];
+            }
+            br.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return version;
     }
 
     @Override

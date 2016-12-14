@@ -10,6 +10,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.StageStyle;
+import javafx.stage.WindowEvent;
+import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -41,11 +43,18 @@ public class UpdateController implements Initializable {
     public Label downloadLabel;
     @FXML
     private Button givePointsButton;
+    @FXML
+    public Label installingLabel;
 
     private Properties prop = new Properties();
     private ApiService apiService = new ApiService();
+    private String merchant;
+    private JSONObject dataJSON;
 
-    public UpdateController() {
+    public UpdateController(String merchant, JSONObject dataJSON) {
+
+        this.merchant = merchant;
+        this.dataJSON = dataJSON;
         try {
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("api.properties");
             if (inputStream != null) {
@@ -64,11 +73,6 @@ public class UpdateController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
-        String version = this.getVersion();
-        String merchant = this.getActivatedMerchant();
-        //Check for update
-        this.checkForUpdate(merchant, version);
-
         //Bind button events
         this.givePointsButton.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent event) -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "Are you sure you want to cancel software update?", ButtonType.YES, ButtonType.NO);
@@ -83,85 +87,32 @@ public class UpdateController implements Initializable {
                 exitApp();
             }
         });
-
+        this.installingLabel.setVisible(false);
+        this.installingLabel.setText("Installing update this might take a while...");
         this.rushLogoImage.setImage(new Image(App.class.getResource(AppConstants.RUSH_LOGO).toExternalForm()));
-        this.downloadLabel.setText("Downloading update from Rush server..");
-    }
+        this.downloadLabel.setText("Downloading update from Rush server...");
 
-    private void checkForUpdate(String merchant, String version) {
-        try {
-            JSONObject jsonObject = apiService.checkSoftwareUpdates(merchant, version);
+        String measure = "mb";
+        Long totalBytes = (Long) dataJSON.get("fileSize");
+        totalBytes = totalBytes / 1000000; //mb
+        if (totalBytes == 0) {
+            totalBytes =(Long) dataJSON.get("fileSize") / 1000; //kb
+            measure = "kb";
+        }
 
-            if (jsonObject.get("data") != null) {
-                JSONObject dataContent = (JSONObject) jsonObject.get("data");
-                String measure = "mb";
-                Long totalBytes = (Long) dataContent.get("fileSize");
-                totalBytes = totalBytes / 1000000; //mb
-                if (totalBytes == 0) {
-                    totalBytes =(Long) dataContent.get("fileSize") / 1000; //kb
-                    measure = "kb";
-                }
+        MyService myService = new MyService(merchant, totalBytes, (String) dataJSON.get("version"));
+        updateProgressBar.progressProperty().bind(myService.progressProperty());
+        myService.start();
+        myService.setOnFailed((WorkerStateEvent f) -> {
+            Alert a = new Alert(Alert.AlertType.INFORMATION, "Unable to retrieve update due to network connection timeout.", ButtonType.OK);
+            a.setTitle(AppConstants.APP_TITLE);
+            a.initStyle(StageStyle.UTILITY);
+            a.showAndWait();
 
-                Alert alert = new Alert(Alert.AlertType.INFORMATION, "There is a software update available with a total of " + totalBytes + measure + ". Would you like to download it now?", ButtonType.YES, ButtonType.NO);
-                alert.setTitle(AppConstants.APP_TITLE);
-                alert.initStyle(StageStyle.UTILITY);
-                alert.showAndWait();
-
-                if (alert.getResult() == ButtonType.NO) {
-                    alert.close();
-                    File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
-                    lockFile.delete();
-                    //launch app
-                    Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
-                    System.exit(0);
-                }
-                if (alert.getResult() == ButtonType.YES) {
-                    alert.close();
-                    MyService myService = new MyService(merchant,totalBytes);
-                    updateProgressBar.progressProperty().bind(myService.progressProperty());
-                    myService.start();
-                    myService.setOnFailed((WorkerStateEvent f) -> {
-                        Alert a = new Alert(Alert.AlertType.INFORMATION, "Unable to retrieve update due to network connection timeout.", ButtonType.OK);
-                        a.setTitle(AppConstants.APP_TITLE);
-                        a.initStyle(StageStyle.UTILITY);
-                        a.showAndWait();
-
-                        if (a.getResult() == ButtonType.OK) {
-                            this.exitApp();
-                        }
-                    });
-                }
-            } else {
+            if (a.getResult() == ButtonType.OK) {
                 this.exitApp();
             }
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-            this.exitApp();
-        }
-    }
-
-    private String getVersion() {
-        String version = null;
-        try {
-            File versionFile = new File(System.getProperty("user.home") + AppConstants.VERSION_PATH);
-            //Get merchant key from activation file
-            BufferedReader br = new BufferedReader(new FileReader(versionFile));
-            String l = "";
-            version = null;
-            while ((l = br.readLine()) != null) {
-                String[] arr = l.split("=");
-                version = arr[1];
-            }
-            br.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return version;
+        });
     }
 
 
@@ -179,10 +130,12 @@ public class UpdateController implements Initializable {
     private class MyService extends Service<Void> {
         private String merchantKey;
         private Long totalBytes;
+        private String version;
 
-        public MyService(String merchantKey, Long totalBytes) {
+        public MyService(String merchantKey, Long totalBytes, String version) {
             this.totalBytes = totalBytes;
             this.merchantKey = merchantKey;
+            this.version = version;
         }
 
         @Override
@@ -221,7 +174,7 @@ public class UpdateController implements Initializable {
                         out.close();
                         inputStream.close();
 
-                        verifyUpdateFile();
+                        verifyUpdateFile(version);
 
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -233,27 +186,37 @@ public class UpdateController implements Initializable {
         }
     }
 
-    private void verifyUpdateFile() {
+    private void verifyUpdateFile(String version) {
         byte[] buffer = new byte[1024];
 
         try {
 
             UnzipUtil unzipUtil = new UnzipUtil();
             unzipUtil.unzip(System.getProperty("user.home") + AppConstants.UPDATE_ZIP, System.getProperty("user.home") + AppConstants.BASE_FOLDER);
+
+            updateProgressBar.setVisible(false);
+            givePointsButton.setVisible(false);
+            downloadLabel.setVisible(false);
+            rushLogoImage.setVisible(false);
+            installingLabel.setVisible(true);
             //com, app, lib
             Process p1 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "com/"});
             while(p1.isAlive()) {
-               Thread.sleep(2000);
+               Thread.sleep(1000);
             }
 
             Process p2 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "app/"});
             while(p2.isAlive()) {
-                Thread.sleep(2000);
+                Thread.sleep(1000);
             }
             Process p3 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "lib/"});
             while(p3.isAlive()) {
-                Thread.sleep(2000);
+                Thread.sleep(1000);
             }
+            //clean up
+            updateVersion(version);
+            deleteTempFiles();
+
             Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
             System.exit(0);
         } catch(Exception ex) {
@@ -267,6 +230,51 @@ public class UpdateController implements Initializable {
                 alert.close();
             }
         }
+    }
+
+    public void deleteTempFiles() {
+        try {
+            File dir = new File(System.getProperty("user.home") + AppConstants.BASE_FOLDER);
+            GenericExtFilter filter = new GenericExtFilter(".tmp");
+            String[] tempFiles = dir.list(filter);
+            for (String file : tempFiles) {
+                String temp = System.getProperty("user.home") + AppConstants.BASE_FOLDER + "\\" + file;
+                File f = new File(temp);
+                if (f.exists()) {
+                    f.delete();
+                }
+            }
+            File updateZip = new File(System.getProperty("user.home") + AppConstants.UPDATE_ZIP);
+            if (updateZip.exists()) {
+                updateZip.delete();
+            }
+            File comFile = new File(System.getProperty("user.home") + AppConstants.COM_FOLDER);
+            if (comFile.exists()) {
+                FileUtils.forceDelete(comFile);
+            }
+            File appFolder = new File(System.getProperty("user.home") + AppConstants.APP_FOLDER);
+            if (appFolder.exists()) {
+                FileUtils.forceDelete(appFolder);
+            }
+            File libFolder = new File(System.getProperty("user.home") + AppConstants.LIB_FOLDER);
+            if (libFolder.exists()) {
+                FileUtils.forceDelete(libFolder);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateVersion(String version) {
+       try {
+           File file = new File(System.getProperty("user.home") + AppConstants.VERSION_PATH);
+           PrintWriter writer = new PrintWriter(file);
+           writer.write("version=" + version);
+           writer.flush();
+           writer.close();
+       } catch (FileNotFoundException e) {
+           e.printStackTrace();
+       }
     }
 
     public String getActivatedMerchant() {
@@ -286,6 +294,20 @@ public class UpdateController implements Initializable {
             e.printStackTrace();
         }
         return null;
+    }
+
+    // inner class, generic extension filter
+    public class GenericExtFilter implements FilenameFilter {
+
+        private String ext;
+
+        public GenericExtFilter(String ext) {
+            this.ext = ext;
+        }
+
+        public boolean accept(File dir, String name) {
+            return (name.endsWith(ext));
+        }
     }
 
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="110.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <Label fx:id="messageLbl" layoutX="20.0" layoutY="14.0" prefHeight="39.0" prefWidth="360.0" text="Label" wrapText="true" />
+      <Button fx:id="yesBtn" layoutX="108.0" layoutY="71.0" mnemonicParsing="false" prefHeight="30.0" prefWidth="80.0" text="Yes" />
+      <Button fx:id="noBtn" layoutX="212.0" layoutY="71.0" mnemonicParsing="false" prefHeight="30.0" prefWidth="80.0" text="No" />
+   </children>
+</Pane>
