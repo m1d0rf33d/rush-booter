@@ -107,6 +107,7 @@ public class UpdateController implements Initializable {
             Alert a = new Alert(Alert.AlertType.INFORMATION, "Unable to retrieve update due to network connection timeout.", ButtonType.OK);
             a.setTitle(AppConstants.APP_TITLE);
             a.initStyle(StageStyle.UTILITY);
+            a.initOwner((givePointsButton.getScene().getWindow()));
             a.showAndWait();
 
             if (a.getResult() == ButtonType.OK) {
@@ -199,20 +200,13 @@ public class UpdateController implements Initializable {
             downloadLabel.setVisible(false);
             rushLogoImage.setVisible(false);
             installingLabel.setVisible(true);
-            //com, app, lib
-            Process p1 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "com/"});
+
+            Process p1 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "com/",
+                     "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "app/", "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "lib/", "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "api.properties"});
             while(p1.isAlive()) {
-               Thread.sleep(1000);
+                Thread.sleep(500);
             }
 
-            Process p2 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "app/"});
-            while(p2.isAlive()) {
-                Thread.sleep(1000);
-            }
-            Process p3 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "lib/"});
-            while(p3.isAlive()) {
-                Thread.sleep(1000);
-            }
             //clean up
             updateVersion(version);
             deleteTempFiles();

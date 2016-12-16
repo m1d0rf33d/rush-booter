@@ -45,7 +45,11 @@ public class NotificationController implements Initializable{
             totalBytes =(Long) dataJSON.get("fileSize") / 1000; //kb
             measure = "kb";
         }
-        messageLbl.setText("There is a software update available with a total of " + totalBytes + measure + ". Would you like to download it now?");
+        if (totalBytes == 0) {
+            totalBytes =(Long) dataJSON.get("fileSize"); //kb
+            measure = "bytes";
+        }
+        messageLbl.setText("There is a software update available with a total of " + totalBytes + " " + measure + ". Would you like to download it now?");
 
         yesBtn.setOnMouseClicked(e-> {
             try {

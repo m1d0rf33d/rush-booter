@@ -36,7 +36,7 @@ public class ApiService {
         }
     }
 
-    public JSONObject checkSoftwareUpdates(String merchant, String version) {
+    public JSONObject checkSoftwareUpdates(String merchant, String version) throws IOException {
 
         try {
             HttpResponse response;
@@ -63,8 +63,6 @@ public class ApiService {
         } catch (ParseException e) {
             e.printStackTrace();
         } catch (ClientProtocolException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
             e.printStackTrace();
         }
         return null;

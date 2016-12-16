@@ -151,7 +151,7 @@ public class App extends Application{
     }
 
     @Override
-    public void start(Stage primaryStage) throws Exception {
+    public void start(Stage primaryStage)  {
         //lock file
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -163,26 +163,38 @@ public class App extends Application{
             }
         });
 
-        //Let's get the party started
-        String merchant = getActivatedMerchant();
-        //Check for updates
-        JSONObject jsonObj = this.checkForUpdate(merchant, getVersion());
-        JSONObject dataJSON = (JSONObject) jsonObj.get("data");
-        if (dataJSON.get("fileSize") != null) {
-            Stage stage = new Stage();
-            FXMLLoader  loader  = new FXMLLoader(App.class.getResource(AppConstants.NOTIFICATION_FXML));
-            NotificationController notificationController = new NotificationController(merchant, dataJSON);
-            loader.setController(notificationController);
-            stage.setScene(new Scene(loader.load(), 400,110));
-            stage.resizableProperty().setValue(Boolean.FALSE);
-            stage.setTitle(AppConstants.APP_TITLE);
-            stage.getIcons().add(new Image(App.class.getResource(AppConstants.R_LOGO).toExternalForm()));
-            stage.show();
-        } else {
+        try {
+            //Let's get the party started
+            String merchant = getActivatedMerchant();
+            //Check for updates
+            JSONObject jsonObj = this.checkForUpdate(merchant, getVersion());
+            JSONObject dataJSON = (JSONObject) jsonObj.get("data");
+            if (dataJSON.get("fileSize") != null) {
+                Stage stage = new Stage();
+                FXMLLoader  loader  = new FXMLLoader(App.class.getResource(AppConstants.NOTIFICATION_FXML));
+                NotificationController notificationController = new NotificationController(merchant, dataJSON);
+                loader.setController(notificationController);
+                stage.setScene(new Scene(loader.load(), 400,110));
+                stage.resizableProperty().setValue(Boolean.FALSE);
+                stage.setTitle(AppConstants.APP_TITLE);
+                stage.getIcons().add(new Image(App.class.getResource(AppConstants.R_LOGO).toExternalForm()));
+                stage.show();
+            } else {
+                File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
+                lockFile.delete();
+                //launch app
+                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+                System.exit(0);
+            }
+        } catch (IOException e) {
             File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
             lockFile.delete();
             //launch app
-            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+            try {
+                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
             System.exit(0);
         }
 
@@ -190,7 +202,7 @@ public class App extends Application{
     }
 
 
-    private JSONObject checkForUpdate(String merchant, String version) {
+    private JSONObject checkForUpdate(String merchant, String version) throws IOException {
         ApiService apiService = new ApiService();
         return apiService.checkSoftwareUpdates(merchant, version);
     }
