@@ -29,16 +29,18 @@ import java.nio.file.Path;
  */
 public class App extends Application{
 
+    private static String javaExe = "\"c:\\Program Files (x86)\\Rush-POS-Sync\\jre1.8.0_121\\bin\\java.exe\"";
+    private static boolean is64Bit;
+
     public static void main(String[] args) {
         try {
-            boolean is64bit = false;
             if (System.getProperty("os.name").contains("Windows")) {
-                is64bit = (System.getenv("ProgramFiles(x86)") != null);
+                is64Bit = (System.getenv("ProgramFiles(x86)") != null);
                 //check if locked
                 File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
                 if (lockFile.exists()) {
                     try {
-                        if (is64bit) {
+                        if (is64Bit) {
                             Runtime.getRuntime().exec("cmd /c start  C:\\\"Program Files (x86)\"\\Rush-POS-Sync\\max.vbs");
                         } else {
                             Runtime.getRuntime().exec("cmd /c start C:\\\"Program Files\"\\Rush-POS-Sync\\max.vbs");
@@ -60,9 +62,9 @@ public class App extends Application{
                 //lock it
                 lockFile.createNewFile();
                 //transfer base jar to User directory
-                createBaseJarToUserDir(is64bit);
+                createBaseJarToUserDir(is64Bit);
                 //transfer version txt
-                createVersionFile(is64bit);
+                createVersionFile(is64Bit);
 
                 //If activated
                 File activateFile = new File(System.getProperty("user.home") + AppConstants.ACTIVATION_PATH);
@@ -71,7 +73,10 @@ public class App extends Application{
                 } else {
                     //remove lock
                     lockFile.delete();
-                    Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+                    if (!is64Bit) {
+                        javaExe = "\"c:\\Program Files\\Rush-POS-Sync\\jre1.8.0_121\\bin\\java.exe\"";
+                    }
+                    Runtime.getRuntime().exec(new String[] {javaExe, "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
                     System.exit(0);
                 }
             }
@@ -183,7 +188,10 @@ public class App extends Application{
                 File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
                 lockFile.delete();
                 //launch app
-                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+                if (!is64Bit) {
+                    javaExe = "\"c:\\Program Files\\Rush-POS-Sync\\jre1.8.0_121\\bin\\java.exe\"";
+                }
+                Runtime.getRuntime().exec(new String[] {javaExe, "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
                 System.exit(0);
             }
         } catch (IOException e) {
@@ -191,7 +199,10 @@ public class App extends Application{
             lockFile.delete();
             //launch app
             try {
-                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+                if (!is64Bit) {
+                    javaExe = "\"c:\\Program Files\\Rush-POS-Sync\\jre1.8.0_121\\bin\\java.exe\"";
+                }
+                Runtime.getRuntime().exec(new String[] {javaExe, "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
             } catch (IOException e1) {
                 e1.printStackTrace();
             }

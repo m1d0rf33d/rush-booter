@@ -29,6 +29,8 @@ public class NotificationController implements Initializable{
 
     private JSONObject dataJSON;
     private String merchant;
+    private static String javaExe = "\"c:\\Program Files (x86)\\Rush-POS-Sync\\jre1.8.0_121\\bin\\java.exe\"";
+
 
     public NotificationController(String merchant, JSONObject dataJSON) {
         this.dataJSON = dataJSON;
@@ -37,6 +39,10 @@ public class NotificationController implements Initializable{
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+
+        if (System.getenv("ProgramFiles(x86)") == null) {
+            javaExe = "\"c:\\Program Files\\Rush-POS-Sync\\jre1.8.0_121\\bin\\java.exe\"";
+        }
 
         String measure = "mb";
         Long totalBytes = (Long) dataJSON.get("fileSize");
@@ -74,7 +80,7 @@ public class NotificationController implements Initializable{
                 File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
                 lockFile.delete();
                 //launch app
-                Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+                Runtime.getRuntime().exec(new String[] {javaExe, "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
                 System.exit(0);
             } catch (IOException e1) {
                 e1.printStackTrace();

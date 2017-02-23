@@ -1,3 +1,4 @@
+
 package com.yondu;
 
 import javafx.concurrent.Service;
@@ -50,8 +51,18 @@ public class UpdateController implements Initializable {
     private ApiService apiService = new ApiService();
     private String merchant;
     private JSONObject dataJSON;
+    private String javaExe;
+    private String jarExe;
 
     public UpdateController(String merchant, JSONObject dataJSON) {
+        if(System.getenv("ProgramFiles(x86)") != null) {
+            jarExe = "\"c:\\Program Files (x86)\\Rush-POS-Sync\\jre1.8.0_121\\bin\\jar.exe\"";
+            javaExe = "\"c:\\Program Files (x86)\\Rush-POS-Sync\\jre1.8.0_121\\bin\\java.exe\"";
+
+        } else {
+            jarExe = "\"c:\\Program Files\\Rush-POS-Sync\\jre1.8.0_121\\bin\\jar.exe\"";
+            javaExe = "\"c:\\Program Files\\Rush-POS-Sync\\jre1.8.0_121\\bin\\java.exe\"";
+        }
 
         this.merchant = merchant;
         this.dataJSON = dataJSON;
@@ -121,7 +132,7 @@ public class UpdateController implements Initializable {
         try {
             File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
             lockFile.delete();
-            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+            Runtime.getRuntime().exec(new String[] {javaExe, "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -201,7 +212,7 @@ public class UpdateController implements Initializable {
             rushLogoImage.setVisible(false);
             installingLabel.setVisible(true);
 
-            Process p1 = Runtime.getRuntime().exec(new String[] {"jar", "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "com/",
+            Process p1 = Runtime.getRuntime().exec(new String[] {jarExe, "uf", System.getProperty("user.home") + AppConstants.JAR_PATH, "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "com/",
                      "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "app/", "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "lib/", "-C",  System.getProperty("user.home") + AppConstants.BASE_FOLDER, "api.properties"});
             while(p1.isAlive()) {
                 Thread.sleep(500);
@@ -211,7 +222,7 @@ public class UpdateController implements Initializable {
             updateVersion(version);
             deleteTempFiles();
 
-            Runtime.getRuntime().exec(new String[] {"java", "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
+            Runtime.getRuntime().exec(new String[] {javaExe, "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + "\\Rush-POS-Sync\\rush-pos-1.0-SNAPSHOT.jar"});
             System.exit(0);
         } catch(Exception ex) {
             ex.printStackTrace();
