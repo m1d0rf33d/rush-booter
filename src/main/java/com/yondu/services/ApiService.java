@@ -1,10 +1,13 @@
 package com.yondu.services;
 
+import com.yondu.App;
 import com.yondu.model.ApiResponse;
+import javafx.stage.Stage;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
@@ -113,6 +116,53 @@ public class ApiService {
         rd.close();
         httpClient.close();
         return (String) jsonObject.get("access_token");
+    }
+
+    public ApiResponse activateMerchant(String merchantKey) {
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setSuccess(false);
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("uniqueKey", merchantKey);
+
+            String url = properties.getProperty("base_url") +  properties.getProperty("validate_merchant_endpoint");
+            StringEntity stringEntity = new StringEntity(payload.toJSONString());
+            String token = getToken();
+            DefaultHttpClient client = new DefaultHttpClient();
+            DefaultHttpRequestRetryHandler retryHandler = new DefaultHttpRequestRetryHandler(20, true);
+            client.setHttpRequestRetryHandler(retryHandler);
+
+            HttpResponse response;
+            HttpPost httpPost = new HttpPost(url);
+            httpPost.setEntity(stringEntity);
+            httpPost.addHeader("Authorization", "Bearer " + token);
+            httpPost.addHeader("Content-Type", "application/json");
+            response = client.execute(httpPost);
+
+            BufferedReader rd = new BufferedReader(
+                    new InputStreamReader(response.getEntity().getContent()));
+
+            StringBuffer sb = new StringBuffer();
+            String line;
+            while ((line = rd.readLine()) != null) {
+                sb.append(line);
+            }
+            client.close();
+
+            JSONParser parser = new JSONParser();
+            JSONObject jsonObject = (JSONObject) parser.parse(sb.toString());
+            if (jsonObject.get("responseCode").equals("200")) {
+                apiResponse.setSuccess(true);
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return apiResponse;
     }
 
 }

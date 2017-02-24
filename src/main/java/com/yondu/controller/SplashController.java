@@ -1,6 +1,7 @@
 package com.yondu.controller;
 
 import com.yondu.App;
+import com.yondu.commons.AppContants;
 import com.yondu.commons.UnzipUtil;
 import com.yondu.model.ApiResponse;
 import com.yondu.services.SplashService;
@@ -10,7 +11,10 @@ import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
@@ -18,6 +22,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpResponse;
@@ -88,7 +93,14 @@ public class SplashController implements Initializable {
         phaseOneWorker.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
             @Override
             public void handle(WorkerStateEvent event) {
-                goToSecondPhase();
+                File activationFile = new File(App.appContextHolder.getActivationPath());
+                if (activationFile.exists()) {
+                    goToSecondPhase();
+                } else {
+                    goToActivationPhase();
+                    ((Stage) taskLabel.getScene().getWindow()).close();
+                }
+
             }
         });
         new Thread(phaseOneWorker).start();
@@ -186,7 +198,20 @@ public class SplashController implements Initializable {
         new Thread(phaseTwoWorker).start();
     }
 
-
+    public void goToActivationPhase() {
+        try {
+            //Launch activation window
+            Stage stage = new Stage();
+            Parent root = FXMLLoader.load(App.class.getResource(AppContants.ACTIVATION_FXML));
+            stage.setScene(new Scene(root, 600,400));
+            stage.setTitle(APP_TITLE);
+            stage.resizableProperty().setValue(Boolean.FALSE);
+            stage.getIcons().add(new Image(App.class.getResource(AppContants.R_LOGO).toExternalForm()));
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public Task PhaseTwoWorker() {
         return new Task() {

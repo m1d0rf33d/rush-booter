@@ -19,12 +19,8 @@ public class AppContants {
     public static final String ACTIVATION_FILE = "activation.txt";
     public static final String JAR_FILE = "rush-pos-1.0-SNAPSHOT.jar";
     public static final String VERSION_FILE = "version.txt";
-    public static final String UPDATE_FXML = "/app/fxml/update.fxml";
     public static final String UPDATE_ZIP = "update.zip";
-    public static final String COM_FOLDER = "com";
-    public static final String APP_FOLDER = "app";
-    public static final String LIB_FOLDER = "lib";
-    public static final String NOTIFICATION_FXML = "/app/fxml/notification.fxml";
     public static final String SPLASH_FXML = "/app/fxml/splash.fxml";
+    public static final String ACTIVATION_FXML = "/app/fxml/activation.fxml";
     public static final String OCR_FILE = "ocr.properties";
 }
