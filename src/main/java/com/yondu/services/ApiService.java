@@ -1,10 +1,13 @@
-package com.yondu;
+package com.yondu.services;
 
+import com.yondu.model.ApiResponse;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -36,18 +39,23 @@ public class ApiService {
         }
     }
 
-    public JSONObject checkSoftwareUpdates(String merchant, String version) throws IOException {
+    public ApiResponse checkSoftwareUpdates(String merchant, String version)  {
+
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setSuccess(false);
 
         try {
-            HttpResponse response;
-            CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+            DefaultHttpClient httpClient = new DefaultHttpClient();
+            DefaultHttpRequestRetryHandler retryHandler = new DefaultHttpRequestRetryHandler(20, true);
+            httpClient.setHttpRequestRetryHandler(retryHandler);
+
             String url = properties.getProperty("base_url") + properties.getProperty("get_updates_api");
             url = url.replace(":merchant", merchant);
             url = url.replace(":version", version);
             HttpGet request = new HttpGet(url);
             request.addHeader("content-type", "application/octet-stream");
             request.addHeader("Authorization", "Bearer "  + getToken());
-            response = httpClient.execute(request);
+            HttpResponse response = httpClient.execute(request);
             BufferedReader rd = new BufferedReader(
                     new InputStreamReader(response.getEntity().getContent()));
 
@@ -56,20 +64,30 @@ public class ApiService {
             while ((line = rd.readLine()) != null) {
                 result.append(line);
             }
+
+            JSONParser parser = new JSONParser();
+            JSONObject payload = (JSONObject) parser.parse(request.toString());
+
+            apiResponse.setSuccess(true);
+            apiResponse.setPayload(payload);
+
             rd.close();
             httpClient.close();
-            JSONParser parser = new JSONParser();
-            return (JSONObject) parser.parse(result.toString());
         } catch (ParseException e) {
             e.printStackTrace();
         } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return null;
     }
 
     public String getToken() throws IOException, ParseException {
-        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+        DefaultHttpClient httpClient = new DefaultHttpClient();
+        DefaultHttpRequestRetryHandler retryHandler = new DefaultHttpRequestRetryHandler(20, true);
+        httpClient.setHttpRequestRetryHandler(retryHandler);
+
         String url = properties.getProperty("base_url") + properties.getProperty("get_token_api");
         url = url.replace(":username", properties.getProperty("oauth_username"));
         url = url.replace(":password", properties.getProperty("oauth_password"));
@@ -89,6 +107,8 @@ public class ApiService {
         }
         JSONParser parser = new JSONParser();
         JSONObject jsonObject = (JSONObject) parser.parse(result.toString());
+        rd.close();
+        httpClient.close();
         return (String) jsonObject.get("access_token");
     }
 

@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
-
+import static com.yondu.commons.AppContants.*;
 /**
  * Created by erwin on 12/14/2016.
  */
@@ -60,13 +60,13 @@ public class NotificationController implements Initializable{
         yesBtn.setOnMouseClicked(e-> {
             try {
                 Stage stage = new Stage();
-                FXMLLoader  loader  = new FXMLLoader(App.class.getResource(AppConstants.UPDATE_FXML));
+                FXMLLoader  loader  = new FXMLLoader(App.class.getResource(UPDATE_FXML));
                 UpdateController updateController = new UpdateController(merchant, dataJSON);
                 loader.setController(updateController);
                 stage.setScene(new Scene(loader.load(), 400,200));
-                stage.setTitle(AppConstants.APP_TITLE);
+                stage.setTitle(APP_TITLE);
                 stage.resizableProperty().setValue(Boolean.FALSE);
-                stage.getIcons().add(new Image(App.class.getResource(AppConstants.R_LOGO).toExternalForm()));
+                stage.getIcons().add(new Image(App.class.getResource(R_LOGO).toExternalForm()));
                 stage.show();
             } catch (IOException e1) {
                 e1.printStackTrace();
@@ -77,10 +77,10 @@ public class NotificationController implements Initializable{
 
         noBtn.setOnMouseClicked(e-> {
             try {
-                File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
+                File lockFile = new File(System.getProperty("user.home") + LOCK_FILE);
                 lockFile.delete();
                 //launch app
-                Runtime.getRuntime().exec(new String[] {javaExe, "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
+                Runtime.getRuntime().exec(new String[] {"cd", "/usr/lib/jvm/java-8-oracle/bin", "-C", "./java" ,"-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + JAR_FILE});
                 System.exit(0);
             } catch (IOException e1) {
                 e1.printStackTrace();

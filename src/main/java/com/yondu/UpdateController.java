@@ -1,6 +1,7 @@
 
 package com.yondu;
 
+import com.yondu.services.ApiService;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
@@ -11,7 +12,6 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.StageStyle;
-import javafx.stage.WindowEvent;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -24,13 +24,9 @@ import org.json.simple.JSONObject;
 
 import java.io.*;
 import java.net.URL;
-import java.util.Enumeration;
 import java.util.Properties;
 import java.util.ResourceBundle;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
-
+import static com.yondu.commons.AppContants.*;
 /**
  * Created by erwin on 11/17/2016.
  */
@@ -55,7 +51,14 @@ public class UpdateController implements Initializable {
     private String jarExe;
 
     public UpdateController(String merchant, JSONObject dataJSON) {
-        if(System.getenv("ProgramFiles(x86)") != null) {
+
+    }
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+
+    }
+       /* if(System.getenv("ProgramFiles(x86)") != null) {
             jarExe = "\"c:\\Program Files (x86)\\Rush-POS-Sync\\jre1.8.0_121\\bin\\jar.exe\"";
             javaExe = "\"c:\\Program Files (x86)\\Rush-POS-Sync\\jre1.8.0_121\\bin\\java.exe\"";
 
@@ -87,7 +90,7 @@ public class UpdateController implements Initializable {
         //Bind button events
         this.givePointsButton.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent event) -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "Are you sure you want to cancel software update?", ButtonType.YES, ButtonType.NO);
-            alert.setTitle(AppConstants.APP_TITLE);
+            alert.setTitle(APP_TITLE);
             alert.initStyle(StageStyle.UTILITY);
             alert.showAndWait();
 
@@ -100,7 +103,7 @@ public class UpdateController implements Initializable {
         });
         this.installingLabel.setVisible(false);
         this.installingLabel.setText("Installing update this might take a while...");
-        this.rushLogoImage.setImage(new Image(App.class.getResource(AppConstants.RUSH_LOGO).toExternalForm()));
+        this.rushLogoImage.setImage(new Image(App.class.getResource(RUSH_LOGO).toExternalForm()));
         this.downloadLabel.setText("Downloading update from Rush server...");
 
         String measure = "mb";
@@ -116,7 +119,7 @@ public class UpdateController implements Initializable {
         myService.start();
         myService.setOnFailed((WorkerStateEvent f) -> {
             Alert a = new Alert(Alert.AlertType.INFORMATION, "Unable to retrieve update due to network connection timeout.", ButtonType.OK);
-            a.setTitle(AppConstants.APP_TITLE);
+            a.setTitle(APP_TITLE);
             a.initStyle(StageStyle.UTILITY);
             a.initOwner((givePointsButton.getScene().getWindow()));
             a.showAndWait();
@@ -130,7 +133,7 @@ public class UpdateController implements Initializable {
 
     private void exitApp() {
         try {
-            File lockFile = new File(System.getProperty("user.home") + AppConstants.LOCK_PATH);
+            File lockFile = new File(System.getProperty("user.home") + LOCK_FILE);
             lockFile.delete();
             Runtime.getRuntime().exec(new String[] {javaExe, "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
         } catch (IOException e) {
@@ -171,7 +174,7 @@ public class UpdateController implements Initializable {
                         response = httpClient.execute(request);
 
                         InputStream inputStream = response.getEntity().getContent();
-                        String location = System.getProperty("user.home") + AppConstants.UPDATE_ZIP;
+                        String location = System.getProperty("user.home") + UPDATE_ZIP;
                         FileOutputStream out = new FileOutputStream(location);
                         int len = 0;
                         byte[] buffer = new byte[2097152];
@@ -314,5 +317,5 @@ public class UpdateController implements Initializable {
             return (name.endsWith(ext));
         }
     }
-
+*/
 }

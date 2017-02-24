@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="300.0" prefWidth="500.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.yondu.SplashController">
+   <children>
+      <ImageView fx:id="logoImageView" fitHeight="50.0" fitWidth="170.0" pickOnBounds="true" preserveRatio="true" />
+      <VBox maxHeight="100.0" maxWidth="500.0" prefHeight="100.0" prefWidth="500.0">
+         <children>
+            <ProgressBar fx:id="progressBar" maxHeight="15.0" minHeight="15.0" prefHeight="15.0" prefWidth="400.0" progress="0.0" style="-fx-control-inner-background: transparent; -fx-text-box-border: transparent; -fx-accent: #ffb600;">
+               <VBox.margin>
+                  <Insets top="10.0" />
+               </VBox.margin>
+            </ProgressBar>
+            <Label fx:id="taskLabel" textFill="#464545">
+               <font>
+                  <Font size="15.0" />
+               </font>
+               <VBox.margin>
+                  <Insets top="10.0" />
+               </VBox.margin>
+            </Label>
+         </children>
+         <VBox.margin>
+            <Insets left="50.0" right="50.0" top="30.0" />
+         </VBox.margin>
+      </VBox>
+   </children>
+</VBox>
