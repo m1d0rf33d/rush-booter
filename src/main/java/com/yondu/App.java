@@ -1,5 +1,7 @@
 package com.yondu;
 
+import com.yondu.commons.AppContextHolder;
+import com.yondu.services.ApiService;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -8,10 +10,8 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-import java.io.*;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.File;
+import java.io.IOException;
 
 import static com.yondu.commons.AppContants.*;
 
@@ -20,96 +20,95 @@ import static com.yondu.commons.AppContants.*;
  */
 public class App extends Application{
 
-    public static String javaExePath;
-    public static String lockFilePath = System.getenv("RUSH_HOME") + WINDOWS_DIVIDER + LOCK_FILE;
-    public static String activationPath = System.getenv("RUSH_HOME") + WINDOWS_DIVIDER + ACTIVATION_FILE;
-    public static String jarFilePath = System.getenv("RUSH_HOME") + WINDOWS_DIVIDER + JAR_FILE;
-    public static String versionFilePath = System.getenv("RUSH_HOME") + WINDOWS_DIVIDER + LOCK_FILE;
-
+    public static final AppContextHolder appContextHolder = new AppContextHolder();
     private static boolean is64Bit;
 
-
     public static void main(String[] args) {
-        try {
-            if (System.getProperty("os.name").contains("Windows")) {
-                is64Bit = (System.getenv("ProgramFiles(x86)") != null);
-                if (is64Bit) {
-                    javaExePath = PROGRAM_FILES_32 + WINDOWS_DIVIDER + RUSH_FOLDER + JAVA_EXE;
-                } else {
-                    javaExePath = PROGRAM_FILES + WINDOWS_DIVIDER + RUSH_FOLDER + JAVA_EXE;
-                }
-
-
-                maximizeRunningApp();
-
-                File lockFile = new File(lockFilePath);
-                lockFile.createNewFile();
-
-                File dir = new File(System.getenv("RUSH_HOME"));
-                if (!dir.exists()) {
-                    dir.mkdir();
-                    Path path = FileSystems.getDefault().getPath(dir.getAbsolutePath());
-                    Files.setAttribute(path, "dos:hidden", true);
-                }
-
-                createBaseJarToUserDir();
-                createVersionFile();
-
-                File activateFile = new File(activationPath);
-                if (activateFile.exists()) {
-                    launch(args);
-                } else {
-                    lockFile.delete();
-                    Runtime.getRuntime().exec(new String[] {javaExePath, "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-jar", jarFilePath});
-                    System.exit(0);
-                }
-            } else {
-                //This is just for me I hate windows
-
-                launch(args);
-            }
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
-
+        launch(args);
     }
 
-    private static void createBaseJarToUserDir() {
-        try {
-            File file = new File(jarFilePath);
-            if (!file.exists()) {
-                InputStream inStream;
-                OutputStream outStream;
-                File baseFile;
-                if (is64Bit) {
-                    baseFile = new File(PROGRAM_FILES_32 + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + JAR_FILE);
+    @Override
+    public void start(Stage primaryStage)  {
+        setFilePaths();
+        maximizeRunningApp();
+        launchSplashScreen(primaryStage);
 
-                } else {
-                    baseFile = new File(PROGRAM_FILES + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + JAR_FILE);
+
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                File file = new File(System.getProperty("user.home") + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + LOCK_FILE);
+                if (file.exists()) {
+                    file.delete();
                 }
-                File targetFile = new File (jarFilePath);
-                inStream = new FileInputStream(baseFile);
-                outStream = new FileOutputStream(targetFile);
-                byte[] buffer = new byte[5242880];
-
-                int length;
-                while ((length = inStream.read(buffer)) > 0){
-                    outStream.write(buffer, 0, length);
-                }
-
-                inStream.close();
-                outStream.close();
-
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+        });
+
+    }
+    private void launchSplashScreen(Stage primaryStage){
+        try {
+            //Let's get the party started
+            FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource(SPLASH_FXML));
+            Parent root = fxmlLoader.load();
+            primaryStage.setScene(new Scene(root, 500,300));
+            primaryStage.resizableProperty().setValue(false);
+            primaryStage.initStyle(StageStyle.UNDECORATED);
+            primaryStage.setTitle(APP_TITLE);
+            primaryStage.getIcons().add(new Image(App.class.getResource(R_LOGO).toExternalForm()));
+            primaryStage.show();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    @Override
+    public void stop() throws Exception {
+        super.stop();
+        File file = new File(System.getProperty("user.home") + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + LOCK_FILE);
+        if (file.exists()) {
+            file.delete();
+        }
+    }
+
+    private static void setFilePaths() {
+        appContextHolder.setApiService(new ApiService());
+        String rushHome = System.getenv("RUSH_HOME");
+        if (System.getProperty("os.name").contains("Windows")) {
+            String programFiles;
+            is64Bit = (System.getenv("ProgramFiles(x86)") != null);
+            if (is64Bit) {
+                programFiles = PROGRAM_FILES_32;
+
+            } else {
+                programFiles = PROGRAM_FILES;
+            }
+            appContextHolder.setInstallationDir(programFiles);
+            appContextHolder.setLinux(false);
+            appContextHolder.setLockFilePath(rushHome + "\\" + LOCK_FILE);
+            appContextHolder.setActivationPath(rushHome + "\\" + ACTIVATION_FILE);
+            appContextHolder.setJarFilePath(rushHome + "\\" + JAR_FILE);
+            appContextHolder.setVersionFilePath(rushHome + "\\" + VERSION_FILE);
+            appContextHolder.setUpdateFilePath(rushHome + "\\" + UPDATE_ZIP);
+            appContextHolder.setJavaExePath(programFiles + "\\" + JRE_FOLDER + "\\" + JAVA_EXE);
+            appContextHolder.setOcrFilePath(rushHome + "\\" + OCR_FILE);
+
+        } else {
+            appContextHolder.setLinux(true);
+            appContextHolder.setLockFilePath(rushHome + "//" + LOCK_FILE);
+            appContextHolder.setActivationPath(rushHome + "//" + ACTIVATION_FILE);
+            appContextHolder.setJarFilePath(rushHome + "//" + JAR_FILE);
+            appContextHolder.setVersionFilePath(rushHome + "//" + VERSION_FILE);
+            appContextHolder.setUpdateFilePath(rushHome + "//" + UPDATE_ZIP);
+            appContextHolder.setJavaExePath("/usr/lib/jvm/java-8-oracle/bin/java");
+            appContextHolder.setInstallationDir("/home/lynx/Yondu/programfiles");
+            appContextHolder.setOcrFilePath(rushHome + "//" + OCR_FILE);
+        }
+    }
+
+
+
     private static void maximizeRunningApp() {
-        File lockFile = new File(lockFilePath);
+        File lockFile = new File(appContextHolder.getLockFilePath());
         if (lockFile.exists()) {
             try {
                 if (is64Bit) {
@@ -125,103 +124,4 @@ public class App extends Application{
     }
 
 
-
-    private static void createVersionFile() {
-        try {
-            File file = new File(versionFilePath);
-            if (!file.exists()) {
-                InputStream inStream;
-                OutputStream outStream;
-                File baseFile;
-                if (is64Bit) {
-                    baseFile = new File(PROGRAM_FILES_32 + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + VERSION_FILE);
-                } else {
-                    baseFile = new File(PROGRAM_FILES + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + VERSION_FILE);
-                }
-                File targetFile = new File (versionFilePath);
-                inStream = new FileInputStream(baseFile);
-                outStream = new FileOutputStream(targetFile);
-                byte[] buffer = new byte[5242880];
-
-                int length;
-                while ((length = inStream.read(buffer)) > 0){
-                    outStream.write(buffer, 0, length);
-                }
-
-                inStream.close();
-                outStream.close();
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void start(Stage primaryStage)  {
-
-        try {
-            //Let's get the party started
-            FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource(SPLASH_FXML));
-            Parent root = fxmlLoader.load();
-            primaryStage.setScene(new Scene(root, 500,300));
-            primaryStage.resizableProperty().setValue(false);
-            primaryStage.initStyle(StageStyle.UNDECORATED);
-            primaryStage.getIcons().add(new Image(App.class.getResource(R_LOGO).toExternalForm()));
-            primaryStage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-       /* //Let's get the party started
-        String merchant = getActivatedMerchant();
-        String version = getVersion();
-
-        ApiResponse apiResponse = AppContextHolder.apiService.checkSoftwareUpdates(merchant, version);
-        if (apiResponse.isSuccess()) {
-            JSONObject payload = apiResponse.getPayload();
-            if (payload.get("fileSize") != null) {
-                try {
-                    Stage stage = new Stage();
-                    FXMLLoader  loader  = new FXMLLoader(App.class.getResource(NOTIFICATION_FXML));
-                    NotificationController notificationController = new NotificationController(merchant, dataJSON);
-                    loader.setController(notificationController);
-                    stage.setScene(new Scene(loader.load(), 400,110));
-                    stage.resizableProperty().setValue(Boolean.FALSE);
-                    stage.setTitle(APP_TITLE);
-                    stage.getIcons().add(new Image(App.class.getResource(R_LOGO).toExternalForm()));
-                    stage.show();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                File lockFile = new File(System.getProperty("user.home") + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + LOCK_FILE);
-                lockFile.delete();
-                Runtime.getRuntime().exec(new String[] {javaExe, "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx", "-Dcom.sun.javafx.touch=true", "-jar", System.getProperty("user.home") + AppConstants.JAR_PATH});
-                System.exit(0);
-            }
-        }*/
-
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                File file = new File(System.getProperty("user.home") + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + LOCK_FILE);
-                if (file.exists()) {
-                    file.delete();
-                }
-            }
-        });
-
-    }
-
-
-    @Override
-    public void stop() throws Exception {
-        super.stop();
-        File file = new File(System.getProperty("user.home") + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + LOCK_FILE);
-        if (file.exists()) {
-            file.delete();
-        }
-    }
 }

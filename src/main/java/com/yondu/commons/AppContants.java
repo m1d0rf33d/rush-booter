@@ -5,7 +5,7 @@ package com.yondu.commons;
  */
 public class AppContants {
 
-    public static final String JAVA_EXE = "java";
+    public static final String JAVA_EXE = "java.exe";
     public static final String RUSH_FOLDER = "Rush-POS-Sync";
     public static final String PROGRAM_FILES_32 = "c:\\Program Files (x86)";
     public static final String PROGRAM_FILES = "c:\\Program Files";
@@ -26,4 +26,5 @@ public class AppContants {
     public static final String LIB_FOLDER = "lib";
     public static final String NOTIFICATION_FXML = "/app/fxml/notification.fxml";
     public static final String SPLASH_FXML = "/app/fxml/splash.fxml";
+    public static final String OCR_FILE = "ocr.properties";
 }

@@ -8,6 +8,98 @@ import static com.yondu.commons.AppContants.*;
 public class AppContextHolder {
 
 
-    public static final ApiService apiService = new ApiService();
-    public static String JAVA_EXE = "./usr/lib/jvm/java-8-oracle/bin/java.exe";
+    private ApiService apiService;
+    private String javaExePath;
+    private String lockFilePath;
+    private String activationPath;
+    private String jarFilePath;
+    private String versionFilePath;
+    private String updateFilePath;
+    private boolean isLinux;
+    private String ocrFilePath;
+
+
+
+    private String installationDir;
+
+    public String getOcrFilePath() {
+        return ocrFilePath;
+    }
+
+    public void setOcrFilePath(String ocrFilePath) {
+        this.ocrFilePath = ocrFilePath;
+    }
+
+    public String getInstallationDir() {
+        return installationDir;
+
+    }
+
+    public void setInstallationDir(String installationDir) {
+        this.installationDir = installationDir;
+    }
+
+    public ApiService getApiService() {
+        return apiService;
+    }
+
+    public void setApiService(ApiService apiService) {
+        this.apiService = apiService;
+    }
+
+    public String getJavaExePath() {
+        return javaExePath;
+    }
+
+    public void setJavaExePath(String javaExePath) {
+        this.javaExePath = javaExePath;
+    }
+
+    public String getLockFilePath() {
+        return lockFilePath;
+    }
+
+    public void setLockFilePath(String lockFilePath) {
+        this.lockFilePath = lockFilePath;
+    }
+
+    public String getActivationPath() {
+        return activationPath;
+    }
+
+    public void setActivationPath(String activationPath) {
+        this.activationPath = activationPath;
+    }
+
+    public String getJarFilePath() {
+        return jarFilePath;
+    }
+
+    public void setJarFilePath(String jarFilePath) {
+        this.jarFilePath = jarFilePath;
+    }
+
+    public String getVersionFilePath() {
+        return versionFilePath;
+    }
+
+    public void setVersionFilePath(String versionFilePath) {
+        this.versionFilePath = versionFilePath;
+    }
+
+    public String getUpdateFilePath() {
+        return updateFilePath;
+    }
+
+    public void setUpdateFilePath(String updateFilePath) {
+        this.updateFilePath = updateFilePath;
+    }
+
+    public boolean isLinux() {
+        return isLinux;
+    }
+
+    public void setLinux(boolean linux) {
+        isLinux = linux;
+    }
 }
