@@ -23,4 +23,6 @@ public class AppContants {
     public static final String SPLASH_FXML = "/app/fxml/splash.fxml";
     public static final String ACTIVATION_FXML = "/app/fxml/activation.fxml";
     public static final String OCR_FILE = "ocr.properties";
+
+    public static  String RUSH_HOME;
 }

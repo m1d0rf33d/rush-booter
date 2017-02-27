@@ -115,7 +115,7 @@ public class SplashController implements Initializable {
 
                 if (!App.appContextHolder.isLinux()) {
                     String divider = App.appContextHolder.isLinux() ? "//" : "\\";
-                    File rushHome = new File(System.getenv("RUSH_HOME"));
+                    File rushHome = new File(RUSH_HOME);
                     if (!rushHome.exists()) {
                         rushHome.mkdir();
                     }
@@ -143,7 +143,10 @@ public class SplashController implements Initializable {
                         splashService.transferFile(fileFrom, rushJar);
                     }
                 }
-
+                File lockFile = new File(App.appContextHolder.getLockFilePath());
+                if (!lockFile.exists()) {
+                    lockFile.createNewFile();
+                }
                 Thread.sleep(1000);
                 return true;
             }
@@ -285,8 +288,8 @@ public class SplashController implements Initializable {
 
                 try {
                     UnzipUtil unzipUtil = new UnzipUtil();
-                    unzipUtil.unzip(App.appContextHolder.getUpdateFilePath(), System.getenv("RUSH_HOME"));
-                    String rushHome = System.getenv("RUSH_HOME");
+                    unzipUtil.unzip(App.appContextHolder.getUpdateFilePath(), RUSH_HOME);
+                    String rushHome = RUSH_HOME;
                     Process p1 = Runtime.getRuntime().exec(new String[] {App.appContextHolder.getJavaExePath(), "uf", App.appContextHolder.getJarFilePath(), "-C",  rushHome, "com/",
                             "-C", rushHome, "app/", "-C",  rushHome, "lib/", "-C",  rushHome, "api.properties"});
                     updateProgress(1,3);
@@ -318,12 +321,12 @@ public class SplashController implements Initializable {
 
     public void deleteTempFiles() {
         try {
-            File rushHome = new File(System.getenv("RUSH_HOME"));
+            File rushHome = new File(RUSH_HOME);
             GenericExtFilter filter = new GenericExtFilter(".tmp");
             String[] tempFiles = rushHome.list(filter);
             String divider = App.appContextHolder.isLinux() ? "//" : "\\";
             for (String file : tempFiles) {
-                String temp = System.getenv("RUSH_HOME")+ divider + file;
+                String temp = RUSH_HOME + divider + file;
                 File f = new File(temp);
                 if (f.exists()) {
                     f.delete();
@@ -450,7 +453,7 @@ public class SplashController implements Initializable {
             if (App.appContextHolder.isLinux()) {
                 Runtime.getRuntime().exec("/usr/lib/jvm/java-8-oracle/bin/java -jar /home/lynx/Yondu/Rush-POS-Sync/rush-pos-1.0-SNAPSHOT.jar");
             } else {
-                Runtime.getRuntime().exec(new String[] {App.appContextHolder.getJavaExePath(), "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx",  App.appContextHolder.getJarFilePath()});
+                Runtime.getRuntime().exec(new String[] {App.appContextHolder.getJavaExePath(), "-Dcom.sun.javafx.isEmbedded=true", "-Dcom.sun.javafx.virtualKeyboard=javafx",  "-jar", App.appContextHolder.getJarFilePath()});
             }
             System.exit(0);
         } catch (IOException e) {

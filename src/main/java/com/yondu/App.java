@@ -1,5 +1,6 @@
 package com.yondu;
 
+import com.yondu.commons.AppContants;
 import com.yondu.commons.AppContextHolder;
 import com.yondu.services.ApiService;
 import javafx.application.Application;
@@ -29,6 +30,9 @@ public class App extends Application{
 
     @Override
     public void start(Stage primaryStage)  {
+
+        AppContants.RUSH_HOME = System.getenv("RUSH_HOME").replace(";", "");
+
         setFilePaths();
         maximizeRunningApp();
         launchSplashScreen(primaryStage);
@@ -37,7 +41,7 @@ public class App extends Application{
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
-                File file = new File(System.getProperty("user.home") + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + LOCK_FILE);
+                File file = new File(AppContants.RUSH_HOME + WINDOWS_DIVIDER +  LOCK_FILE);
                 if (file.exists()) {
                     file.delete();
                 }
@@ -47,6 +51,8 @@ public class App extends Application{
     }
     private void launchSplashScreen(Stage primaryStage){
         try {
+
+
             //Let's get the party started
             FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource(SPLASH_FXML));
             Parent root = fxmlLoader.load();
@@ -64,7 +70,7 @@ public class App extends Application{
     @Override
     public void stop() throws Exception {
         super.stop();
-        File file = new File(System.getProperty("user.home") + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + LOCK_FILE);
+        File file = new File(AppContants.RUSH_HOME + WINDOWS_DIVIDER + RUSH_FOLDER + WINDOWS_DIVIDER + LOCK_FILE);
         if (file.exists()) {
             file.delete();
         }
@@ -72,7 +78,7 @@ public class App extends Application{
 
     private static void setFilePaths() {
         appContextHolder.setApiService(new ApiService());
-        String rushHome = System.getenv("RUSH_HOME");
+
         if (System.getProperty("os.name").contains("Windows")) {
             String programFiles;
             is64Bit = (System.getenv("ProgramFiles(x86)") != null);
@@ -82,26 +88,26 @@ public class App extends Application{
             } else {
                 programFiles = PROGRAM_FILES;
             }
-            appContextHolder.setInstallationDir(programFiles);
+            appContextHolder.setInstallationDir(programFiles + "\\Rush-POS-Sync");
             appContextHolder.setLinux(false);
-            appContextHolder.setLockFilePath(rushHome + "\\" + LOCK_FILE);
-            appContextHolder.setActivationPath(rushHome + "\\" + ACTIVATION_FILE);
-            appContextHolder.setJarFilePath(rushHome + "\\" + JAR_FILE);
-            appContextHolder.setVersionFilePath(rushHome + "\\" + VERSION_FILE);
-            appContextHolder.setUpdateFilePath(rushHome + "\\" + UPDATE_ZIP);
-            appContextHolder.setJavaExePath(programFiles + "\\" + JRE_FOLDER + "\\" + JAVA_EXE);
-            appContextHolder.setOcrFilePath(rushHome + "\\" + OCR_FILE);
+            appContextHolder.setLockFilePath(RUSH_HOME + "\\" + LOCK_FILE);
+            appContextHolder.setActivationPath(RUSH_HOME + "\\" + ACTIVATION_FILE);
+            appContextHolder.setJarFilePath(RUSH_HOME + "\\" + JAR_FILE);
+            appContextHolder.setVersionFilePath(RUSH_HOME + "\\" + VERSION_FILE);
+            appContextHolder.setUpdateFilePath(RUSH_HOME + "\\" + UPDATE_ZIP);
+            appContextHolder.setJavaExePath(programFiles + "\\" + RUSH_FOLDER + "\\" + JRE_FOLDER + "\\" + JAVA_EXE);
+            appContextHolder.setOcrFilePath(RUSH_HOME + "\\" + OCR_FILE);
 
         } else {
             appContextHolder.setLinux(true);
-            appContextHolder.setLockFilePath(rushHome + "//" + LOCK_FILE);
-            appContextHolder.setActivationPath(rushHome + "//" + ACTIVATION_FILE);
-            appContextHolder.setJarFilePath(rushHome + "//" + JAR_FILE);
-            appContextHolder.setVersionFilePath(rushHome + "//" + VERSION_FILE);
-            appContextHolder.setUpdateFilePath(rushHome + "//" + UPDATE_ZIP);
+            appContextHolder.setLockFilePath(RUSH_HOME + "//" + LOCK_FILE);
+            appContextHolder.setActivationPath(RUSH_HOME + "//" + ACTIVATION_FILE);
+            appContextHolder.setJarFilePath(RUSH_HOME + "//" + JAR_FILE);
+            appContextHolder.setVersionFilePath(RUSH_HOME + "//" + VERSION_FILE);
+            appContextHolder.setUpdateFilePath(RUSH_HOME + "//" + UPDATE_ZIP);
             appContextHolder.setJavaExePath("/usr/lib/jvm/java-8-oracle/bin/java");
             appContextHolder.setInstallationDir("/home/lynx/Yondu/programfiles");
-            appContextHolder.setOcrFilePath(rushHome + "//" + OCR_FILE);
+            appContextHolder.setOcrFilePath(RUSH_HOME + "//" + OCR_FILE);
         }
     }
 
