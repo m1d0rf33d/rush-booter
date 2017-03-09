@@ -44,8 +44,6 @@ public class ActivationController implements Initializable{
     @FXML
     public TextField merchantKeyTextField;
     @FXML
-    public ImageView logoImageView;
-    @FXML
     public Button cancelButton;
     @FXML
     public VBox rootVBox;
@@ -54,7 +52,7 @@ public class ActivationController implements Initializable{
     public void initialize(URL location, ResourceBundle resources) {
 
 
-        logoImageView.setImage(new Image(App.class.getResource("/app/images/r_logo.png").toExternalForm()));
+
 
         activateButton.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent event) -> {
             activate();

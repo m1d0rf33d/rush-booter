@@ -88,6 +88,7 @@ public class App extends Application{
             } else {
                 programFiles = PROGRAM_FILES;
             }
+            appContextHolder.setExeJarFilePath(programFiles + "\\" + RUSH_FOLDER + "\\" + JRE_FOLDER + "\\" + "jar.exe");
             appContextHolder.setInstallationDir(programFiles + "\\Rush-POS-Sync");
             appContextHolder.setLinux(false);
             appContextHolder.setLockFilePath(RUSH_HOME + "\\" + LOCK_FILE);

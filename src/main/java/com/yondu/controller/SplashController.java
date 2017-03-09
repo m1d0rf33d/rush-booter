@@ -41,6 +41,7 @@ import java.net.URL;
 import java.util.Properties;
 import java.util.ResourceBundle;
 
+import static com.sun.imageio.plugins.jpeg.JPEG.version;
 import static com.yondu.commons.AppContants.*;
 
 /**
@@ -59,7 +60,7 @@ public class SplashController implements Initializable {
     private String merchantKey;
     private Properties properties = new Properties();
     private SplashService splashService = new SplashService();
-
+    private String updatedVersion;
     public SplashController() {
         try {
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("api.properties");
@@ -176,7 +177,7 @@ public class SplashController implements Initializable {
                         measure = "kb";
                     }
 
-                    String message = "There is an update available with a total of " + totalBytes + " " + measure;
+                    String message = "There is an update available with a total of " + totalBytes + " " + measure + ". Would you like to download it now?";
                     Text text = new Text(message);
                     Alert alert = new Alert(Alert.AlertType.INFORMATION, "", ButtonType.YES, ButtonType.NO);
                     alert.setTitle(APP_TITLE);
@@ -206,7 +207,7 @@ public class SplashController implements Initializable {
             //Launch activation window
             Stage stage = new Stage();
             Parent root = FXMLLoader.load(App.class.getResource(AppContants.ACTIVATION_FXML));
-            stage.setScene(new Scene(root, 600,400));
+            stage.setScene(new Scene(root, 600,350));
             stage.setTitle(APP_TITLE);
             stage.resizableProperty().setValue(Boolean.FALSE);
             stage.getIcons().add(new Image(App.class.getResource(AppContants.R_LOGO).toExternalForm()));
@@ -230,6 +231,7 @@ public class SplashController implements Initializable {
                     JSONObject data = (JSONObject) payload.get("data");
                     if (data.get("fileSize") != null) {
                         fileSize = (Long) data.get("fileSize");
+                        updatedVersion = (String) data.get("version");
                     }
                 } else {
                     updateProgress(3, 3);
@@ -290,7 +292,7 @@ public class SplashController implements Initializable {
                     UnzipUtil unzipUtil = new UnzipUtil();
                     unzipUtil.unzip(App.appContextHolder.getUpdateFilePath(), RUSH_HOME);
                     String rushHome = RUSH_HOME;
-                    Process p1 = Runtime.getRuntime().exec(new String[] {App.appContextHolder.getJavaExePath(), "uf", App.appContextHolder.getJarFilePath(), "-C",  rushHome, "com/",
+                    Process p1 = Runtime.getRuntime().exec(new String[] {App.appContextHolder.getExeJarFilePath() , "uf", App.appContextHolder.getJarFilePath(), "-C",  rushHome, "com/",
                             "-C", rushHome, "app/", "-C",  rushHome, "lib/", "-C",  rushHome, "api.properties"});
                     updateProgress(1,3);
                     while(p1.isAlive()) {
@@ -298,7 +300,7 @@ public class SplashController implements Initializable {
                     }
 
                     //clean up
-                    //updateVersion(version);
+                    updateVersion();
                     deleteTempFiles();
                     updateProgress(3,3);
                     updateMessage("Installation complete. Launching application..");
@@ -317,6 +319,24 @@ public class SplashController implements Initializable {
                 return true;
             }
         };
+    }
+    private void updateVersion() {
+        File file = new File(App.appContextHolder.getVersionFilePath());
+        if (file.exists()) {
+            file.delete();
+        }
+
+        file = new File(App.appContextHolder.getVersionFilePath());
+        try {
+            file.createNewFile();
+            PrintWriter printWriter = new PrintWriter(file);
+            printWriter.println("version="+ this.updatedVersion);
+            printWriter.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void deleteTempFiles() {

@@ -17,8 +17,15 @@ public class AppContextHolder {
     private String updateFilePath;
     private boolean isLinux;
     private String ocrFilePath;
+    private String exeJarFilePath;
 
+    public String getExeJarFilePath() {
+        return exeJarFilePath;
+    }
 
+    public void setExeJarFilePath(String exeJarFilePath) {
+        this.exeJarFilePath = exeJarFilePath;
+    }
 
     private String installationDir;
 
